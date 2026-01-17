@@ -6,8 +6,9 @@ from pathlib import Path
 from pathlib import Path
 
 BASE_PATH = Path.cwd().parent / 'split_dataset'
+IMAGE_SIZE = 256
 
-def load_image_dataset(directory, batch_size=32, image_size=(256, 256), labels=None):
+def load_image_dataset(directory, batch_size=32, image_size=(IMAGE_SIZE, IMAGE_SIZE), labels=None):
     if not os.path.exists(directory):
         print(f"Directory not found: {directory}")
         return None
