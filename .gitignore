@@ -22,6 +22,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+ml-app/dataset/
 dataset/
 
 # Virtual environments
@@ -96,3 +97,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+ml-app/organized_datasets/
