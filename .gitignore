@@ -22,6 +22,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+ml-app/dataset
+ml-app/dataset/
 
 # Virtual environments
 venv/
