@@ -365,6 +365,13 @@ function showResultOverlay(imageUrl, result) {
     statusClass = 'warning';
     statusIcon = ICONS.gift;
     statusText = 'Limit Reached';
+    
+    // Try to open the extension popup
+    try {
+      chrome.runtime.sendMessage({ action: 'openPopup' });
+    } catch (e) {
+      console.log('Could not open popup');
+    }
   } else if (result.status === 'error') {
     statusClass = 'error';
     statusIcon = ICONS.error;
@@ -385,8 +392,8 @@ function showResultOverlay(imageUrl, result) {
       <div class="proofly-result-body">
         <p>${result.message}</p>
         ${result.image_hash ? `<div class="proofly-hash"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> ${result.image_hash.substring(0, 16)}...</div>` : ''}
-        ${result.remaining_uploads !== undefined && result.remaining_uploads !== 'unlimited' ? `<div class="proofly-meta"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> ${result.remaining_uploads} uploads left</div>` : ''}
-        ${result.signup_bonus ? `<div class="proofly-bonus"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="14" rx="2"/><path d="M12 8v14M3 12h18"/></svg> Sign up for +${result.signup_bonus} more!</div>` : ''}
+        ${result.remaining_uploads !== undefined && result.remaining_uploads !== 'unlimited' ? `<div class="proofly-meta proofly-remaining"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <strong>${result.remaining_uploads}</strong> scans remaining</div>` : ''}
+        ${result.status === 'limit_reached' ? `<button class="proofly-cta-btn" onclick="window.open('http://localhost:3000/signup', '_blank')">Get More Scans →</button>` : ''}
       </div>
     </div>
   `;

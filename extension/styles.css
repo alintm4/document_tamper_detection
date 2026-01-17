@@ -224,6 +224,42 @@
   font-size: 12px;
   color: #6b7280;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.proofly-meta.proofly-remaining {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #1e40af;
+  font-size: 13px;
+}
+
+.proofly-meta.proofly-remaining strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.proofly-cta-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.proofly-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .proofly-bonus {

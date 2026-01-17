@@ -2,6 +2,14 @@
 
 const API_BASE_URL = 'http://localhost:5000';
 
+
+let cachedStats = {
+  remaining: 3,
+  total: 3,
+  isLoggedIn: false,
+  username: null
+};
+
 // Create context menu on install
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -34,7 +42,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       
       const imageBlob = await fetchImage(info.srcUrl);
       const { authToken } = await chrome.storage.local.get('authToken');
-      const result = await analyzeImage(imageBlob, authToken);
+      
+      // Get source site info from the tab
+      const sourceSite = new URL(tab.url).hostname;
+      const sourceUrl = tab.url;
+      
+      const result = await analyzeImage(imageBlob, authToken, {
+        sourceSite,
+        sourceUrl,
+        imageUrl: info.srcUrl
+      });
+      
+      // If limit reached, open popup
+      if (result.status === 'limit_reached') {
+        chrome.action.openPopup();
+      }
       
       await chrome.tabs.sendMessage(tab.id, {
         action: 'showResult',
@@ -63,9 +85,20 @@ async function fetchImage(url) {
 }
 
 // Upload image to backend for analysis
-async function analyzeImage(imageBlob, authToken) {
+async function analyzeImage(imageBlob, authToken, sourceInfo = {}) {
   const formData = new FormData();
   formData.append('file', imageBlob, 'image.jpg');
+  
+  // Add source info to track where the image was scanned from
+  if (sourceInfo.sourceSite) {
+    formData.append('source_site', sourceInfo.sourceSite);
+  }
+  if (sourceInfo.sourceUrl) {
+    formData.append('source_url', sourceInfo.sourceUrl);
+  }
+  if (sourceInfo.imageUrl) {
+    formData.append('image_url', sourceInfo.imageUrl);
+  }
   
   const headers = {};
   if (authToken) {
@@ -136,7 +169,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const imageBlob = await fetchImage(message.imageUrl);
         const { authToken } = await chrome.storage.local.get('authToken');
-        const result = await analyzeImage(imageBlob, authToken);
+        
+        // Get source info from sender tab
+        const sourceSite = sender.tab ? new URL(sender.tab.url).hostname : '';
+        const sourceUrl = sender.tab ? sender.tab.url : '';
+        
+        const result = await analyzeImage(imageBlob, authToken, {
+          sourceSite,
+          sourceUrl,
+          imageUrl: message.imageUrl
+        });
+        
+        // If limit reached, open popup
+        if (result.status === 'limit_reached') {
+          chrome.action.openPopup();
+        }
+        
+        // Update cached stats
+        if (result.remaining_uploads !== undefined) {
+          cachedStats.remaining = result.remaining_uploads;
+        }
+        
         sendResponse(result);
       } catch (error) {
         sendResponse({ status: 'error', message: error.message });
@@ -153,7 +206,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.action === 'register') {
-    handleRegister(message.username, message.password)
+    handleRegister(message.username, message.email, message.password)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ error: error.message }));
     return true;
@@ -161,7 +214,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.action === 'logout') {
     chrome.storage.local.remove(['authToken', 'userInfo']);
+    cachedStats = { remaining: 3, total: 3, isLoggedIn: false, username: null };
     sendResponse({ success: true });
+    return true;
   }
   
   if (message.action === 'getStats') {
@@ -170,51 +225,85 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(error => sendResponse({ error: error.message }));
     return true;
   }
+  
+  if (message.action === 'getCachedStats') {
+    sendResponse(cachedStats);
+    return true;
+  }
+  
+  if (message.action === 'openPopup') {
+  
+    try {
+      chrome.action.openPopup();
+    } catch (e) {
+      console.log('Cannot open popup programmatically');
+    }
+    sendResponse({ success: true });
+    return true;
+  }
 });
 
 // Handle login
 async function handleLogin(username, password) {
-  const response = await fetch(`${API_BASE_URL}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.error || 'Login failed');
-  }
-  
-  // Store token and user info
-  await chrome.storage.local.set({
-    authToken: data.token,
-    userInfo: {
-      username: username,
-      tier: data.tier,
-      upload_count: data.upload_count,
-      upload_limit: data.upload_limit
+  try {
+    const response = await fetch(`${API_BASE_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Login failed');
     }
-  });
-  
-  return data;
+    
+    // Store token and user info
+    await chrome.storage.local.set({
+      authToken: data.token,
+      userInfo: {
+        username: username,
+        tier: data.tier,
+        upload_count: data.upload_count,
+        upload_limit: data.upload_limit
+      }
+    });
+    
+    // Update cached stats
+    cachedStats = {
+      remaining: data.upload_limit - data.upload_count,
+      total: data.upload_limit,
+      isLoggedIn: true,
+      username: username
+    };
+    
+    return data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
 }
 
 // Handle registration
-async function handleRegister(username, password) {
-  const response = await fetch(`${API_BASE_URL}/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.error || 'Registration failed');
+async function handleRegister(username, email, password) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Registration failed');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
   }
-  
-  return data;
 }
 
 // Get user stats
@@ -222,18 +311,31 @@ async function getStats() {
   const { authToken } = await chrome.storage.local.get('authToken');
   
   if (!authToken) {
-    throw new Error('Not logged in');
+    return cachedStats;
   }
   
-  const response = await fetch(`${API_BASE_URL}/user/stats`, {
-    headers: { 'Authorization': `Bearer ${authToken}` }
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to get stats');
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/stats`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to get stats');
+    }
+    
+    // Update cached stats
+    cachedStats = {
+      remaining: data.remaining,
+      total: data.upload_limit,
+      isLoggedIn: true,
+      username: data.username
+    };
+    
+    return data;
+  } catch (error) {
+    console.error('Get stats error:', error);
+    throw error;
   }
-  
-  return data;
 }

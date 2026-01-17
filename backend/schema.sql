@@ -3,6 +3,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
+    name TEXT,
     password_hash TEXT NOT NULL,
     tier TEXT DEFAULT 'free' CHECK(tier IN ('free', 'pro', 'pro_max')),
     upload_count INTEGER DEFAULT 0,
@@ -19,28 +21,40 @@ CREATE TABLE IF NOT EXISTS ip_uploads (
 
 CREATE INDEX IF NOT EXISTS idx_ip_address ON ip_uploads(ip_address);
 
--- Images table with hash for duplicate detection
+-- Images table with hash for duplicate detection (stores unique images)
 CREATE TABLE IF NOT EXISTS images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    ip_address TEXT,  -- For anonymous uploads
+    image_hash TEXT UNIQUE NOT NULL,  -- Perceptual hash for similarity
+    file_hash TEXT NOT NULL,          -- Exact file hash
+    file_size INTEGER,
     filename TEXT,
     original_filename TEXT,
-    image_hash TEXT NOT NULL,  
-    file_hash TEXT NOT NULL,   
-    file_size INTEGER,
-    mask_filename TEXT,
-    result_filename TEXT,
-    analysis_result TEXT,  
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    analysis_result TEXT,             -- JSON with AI analysis
+    is_manipulated BOOLEAN DEFAULT 0,
+    confidence_score REAL,
+    first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    scan_count INTEGER DEFAULT 1
+);
+
+-- Scans table - tracks each scan event (who, when, where)
+CREATE TABLE IF NOT EXISTS scans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_id INTEGER NOT NULL,
+    user_id INTEGER,
+    ip_address TEXT,
+    source_site TEXT,                 -- e.g., "facebook.com"
+    source_url TEXT,                  -- Full URL where image was found
+    image_url TEXT,                   -- Direct URL to the image
+    scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(image_id) REFERENCES images(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
-
 CREATE INDEX IF NOT EXISTS idx_image_hash ON images(image_hash);
 CREATE INDEX IF NOT EXISTS idx_file_hash ON images(file_hash);
-CREATE INDEX IF NOT EXISTS idx_user_id ON images(user_id);
-CREATE INDEX IF NOT EXISTS idx_ip_address_images ON images(ip_address);
+CREATE INDEX IF NOT EXISTS idx_scans_user ON scans(user_id);
+CREATE INDEX IF NOT EXISTS idx_scans_image ON scans(image_id);
+CREATE INDEX IF NOT EXISTS idx_scans_site ON scans(source_site);
 
 CREATE TABLE IF NOT EXISTS tier_limits (
     tier TEXT PRIMARY KEY,

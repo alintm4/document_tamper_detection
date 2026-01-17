@@ -11,10 +11,40 @@ from PIL import Image
 from database import get_db
 from utils.auth import token_optional
 from utils.helpers import get_client_ip
-from utils.hashing import calculate_file_hash, calculate_image_hash, check_duplicate_hash, check_exact_duplicate
+from utils.hashing import calculate_file_hash, calculate_image_hash
 from utils.upload_limits import check_upload_limit, increment_upload_count, get_user_tier
 
 upload_bp = Blueprint('upload', __name__)
+
+
+def find_existing_image(conn, image_hash):
+    """Check if an image with this hash already exists"""
+    c = conn.cursor()
+    c.execute('SELECT id, analysis_result, is_manipulated, confidence_score, scan_count FROM images WHERE image_hash = ?', (image_hash,))
+    row = c.fetchone()
+    if row:
+        return {
+            'id': row[0],
+            'analysis_result': row[1],
+            'is_manipulated': row[2],
+            'confidence_score': row[3],
+            'scan_count': row[4]
+        }
+    return None
+
+
+def record_scan(conn, image_id, user_id, ip_address, source_site, source_url, image_url):
+    """Record a new scan event for an image"""
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO scans (image_id, user_id, ip_address, source_site, source_url, image_url)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (image_id, user_id, ip_address if not user_id else None, source_site, source_url, image_url))
+    
+    # Increment scan count on the image
+    c.execute('UPDATE images SET scan_count = scan_count + 1 WHERE id = ?', (image_id,))
+    
+    return c.lastrowid
 
 
 def process_upload(user_id, force=False):
@@ -26,6 +56,11 @@ def process_upload(user_id, force=False):
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
+    # Get source info from request
+    source_site = request.form.get('source_site', '')
+    source_url = request.form.get('source_url', '')
+    image_url = request.form.get('image_url', '')
+    
     conn = get_db()
     ip_address = get_client_ip()
     
@@ -34,12 +69,11 @@ def process_upload(user_id, force=False):
         tier = get_user_tier(conn, user_id)
         can_upload, limit_info = check_upload_limit(conn, user_id=user_id, tier=tier)
     else:
-        # Anonymous user - no tier, tracked by IP
+        tier = 'anonymous'
         can_upload, limit_info = check_upload_limit(conn, ip_address=ip_address)
     
     if not can_upload:
         conn.close()
-        # Different message for anonymous vs logged in users
         if not user_id:
             return jsonify({
                 'error': 'Free upload limit reached',
@@ -71,33 +105,33 @@ def process_upload(user_id, force=False):
         conn.close()
         return jsonify({'error': f'Invalid image file: {str(e)}'}), 400
     
-    # Check for duplicates
-    if force:
-        # Only check exact duplicates when forcing
-        duplicate = check_exact_duplicate(conn, file_hash, user_id, ip_address if not user_id else None)
-    else:
-        duplicate = check_duplicate_hash(conn, file_hash, image_hash, user_id, ip_address if not user_id else None)
+    # Check if this image already exists (by perceptual hash)
+    existing = find_existing_image(conn, image_hash)
     
-    if duplicate:
+    if existing:
+        # Image already analyzed - just record this scan, don't count toward limit
+        scan_id = record_scan(conn, existing['id'], user_id, ip_address, source_site, source_url, image_url)
+        conn.commit()
         conn.close()
-        if duplicate['type'] == 'exact':
-            return jsonify({
-                'error': 'Duplicate image detected',
-                'duplicate_type': 'exact',
-                'existing_image_id': duplicate['image_id'],
-                'message': 'This exact image has already been uploaded'
-            }), 409
-        else:
-            return jsonify({
-                'warning': 'Similar image detected',
-                'duplicate_type': 'similar',
-                'existing_image_id': duplicate['image_id'],
-                'similarity_score': duplicate.get('similarity'),
-                'message': 'A similar image already exists. Upload anyway?',
-                'allow_override': True
-            }), 409
+        
+        remaining = limit_info.get('remaining', 'unlimited') if limit_info else 'unlimited'
+        
+        return jsonify({
+            'message': 'Image already analyzed',
+            'image_id': existing['id'],
+            'image_hash': image_hash,
+            'is_cached': True,
+            'scan_id': scan_id,
+            'scan_count': existing['scan_count'] + 1,
+            'analysis_result': existing['analysis_result'],
+            'is_manipulated': existing['is_manipulated'],
+            'confidence_score': existing['confidence_score'],
+            'tier': tier,
+            'remaining_uploads': remaining,
+            'source_recorded': bool(source_site or source_url)
+        })
     
-    # Generate unique filename
+    # New image - needs analysis, counts toward limit
     original_filename = secure_filename(file.filename)
     ext = os.path.splitext(original_filename)[1]
     unique_filename = f"{uuid.uuid4().hex}{ext}"
@@ -107,15 +141,18 @@ def process_upload(user_id, force=False):
     with open(filepath, 'wb') as f:
         f.write(file_data)
     
-    # Insert into database
+    # Insert new image
     c = conn.cursor()
     c.execute('''
-        INSERT INTO images (user_id, ip_address, filename, original_filename, image_hash, file_hash, file_size)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (user_id, ip_address if not user_id else None, unique_filename, original_filename, image_hash, file_hash, len(file_data)))
+        INSERT INTO images (image_hash, file_hash, file_size, filename, original_filename, scan_count)
+        VALUES (?, ?, ?, ?, ?, 1)
+    ''', (image_hash, file_hash, len(file_data), unique_filename, original_filename))
     image_id = c.lastrowid
     
-    # Increment upload count
+    # Record this scan
+    scan_id = record_scan(conn, image_id, user_id, ip_address, source_site, source_url, image_url)
+    
+    # Increment upload count (only for new images)
     increment_upload_count(conn, user_id, ip_address if not user_id else None)
     
     conn.commit()
@@ -126,13 +163,16 @@ def process_upload(user_id, force=False):
         remaining -= 1  # Account for this upload
     
     return jsonify({
-        'message': 'Image uploaded successfully' + (' (forced)' if force else ''),
+        'message': 'Image uploaded successfully',
         'image_id': image_id,
+        'scan_id': scan_id,
         'filename': unique_filename,
         'original_filename': original_filename,
         'image_hash': image_hash,
+        'is_cached': False,
         'tier': tier,
-        'remaining_uploads': remaining
+        'remaining_uploads': remaining,
+        'source_recorded': bool(source_site or source_url)
     })
 
 

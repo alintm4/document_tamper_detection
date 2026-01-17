@@ -99,3 +99,128 @@ def get_user_images(user_id):
     
     conn.close()
     return jsonify({'images': images, 'count': len(images)})
+
+
+@user_bp.route('/scans', methods=['GET'])
+@token_required
+def get_user_scans(user_id):
+    """Get user's scan history with source info"""
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Get pagination params
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    offset = (page - 1) * per_page
+    
+    # Get total count
+    c.execute('SELECT COUNT(*) FROM scans WHERE user_id = ?', (user_id,))
+    total = c.fetchone()[0]
+    
+    # Get scans with image info
+    c.execute('''
+        SELECT 
+            s.id as scan_id,
+            s.source_site,
+            s.source_url,
+            s.image_url,
+            s.scanned_at,
+            i.id as image_id,
+            i.image_hash,
+            i.filename,
+            i.is_manipulated,
+            i.confidence_score,
+            i.analysis_result,
+            i.scan_count as total_scans
+        FROM scans s
+        JOIN images i ON s.image_id = i.id
+        WHERE s.user_id = ?
+        ORDER BY s.scanned_at DESC
+        LIMIT ? OFFSET ?
+    ''', (user_id, per_page, offset))
+    
+    scans = []
+    for row in c.fetchall():
+        scans.append({
+            'scan_id': row['scan_id'],
+            'source_site': row['source_site'],
+            'source_url': row['source_url'],
+            'image_url': row['image_url'],
+            'scanned_at': row['scanned_at'],
+            'image': {
+                'id': row['image_id'],
+                'hash': row['image_hash'],
+                'filename': row['filename'],
+                'is_manipulated': row['is_manipulated'],
+                'confidence_score': row['confidence_score'],
+                'analysis_result': row['analysis_result'],
+                'total_scans': row['total_scans']
+            }
+        })
+    
+    conn.close()
+    
+    return jsonify({
+        'scans': scans,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'pages': (total + per_page - 1) // per_page
+    })
+
+
+@user_bp.route('/scan-stats', methods=['GET'])
+@token_required
+def get_scan_stats(user_id):
+    """Get aggregated scan statistics for dashboard"""
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Total scans
+    c.execute('SELECT COUNT(*) FROM scans WHERE user_id = ?', (user_id,))
+    total_scans = c.fetchone()[0]
+    
+    # Unique images scanned
+    c.execute('SELECT COUNT(DISTINCT image_id) FROM scans WHERE user_id = ?', (user_id,))
+    unique_images = c.fetchone()[0]
+    
+    # Sites scanned from
+    c.execute('''
+        SELECT source_site, COUNT(*) as count 
+        FROM scans 
+        WHERE user_id = ? AND source_site != ''
+        GROUP BY source_site 
+        ORDER BY count DESC 
+        LIMIT 10
+    ''', (user_id,))
+    top_sites = [{'site': row[0], 'count': row[1]} for row in c.fetchall()]
+    
+    # Recent activity (last 7 days)
+    c.execute('''
+        SELECT DATE(scanned_at) as date, COUNT(*) as count
+        FROM scans
+        WHERE user_id = ? AND scanned_at >= date('now', '-7 days')
+        GROUP BY DATE(scanned_at)
+        ORDER BY date DESC
+    ''', (user_id,))
+    daily_activity = [{'date': row[0], 'count': row[1]} for row in c.fetchall()]
+    
+    # Manipulated images found
+    c.execute('''
+        SELECT COUNT(DISTINCT i.id)
+        FROM scans s
+        JOIN images i ON s.image_id = i.id
+        WHERE s.user_id = ? AND i.is_manipulated = 1
+    ''', (user_id,))
+    manipulated_found = c.fetchone()[0]
+    
+    conn.close()
+    
+    return jsonify({
+        'total_scans': total_scans,
+        'unique_images': unique_images,
+        'manipulated_found': manipulated_found,
+        'top_sites': top_sites,
+        'daily_activity': daily_activity
+    })
+
