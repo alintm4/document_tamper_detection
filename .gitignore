@@ -22,8 +22,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-ml-app/dataset/
-dataset/
+
 
 # Virtual environments
 venv/
@@ -98,4 +97,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-ml-app/organized_datasets/
+# dataset exclusion
+ml-app/organized_dataset/
+ml-app/dataset/
+dataset/

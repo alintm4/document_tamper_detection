@@ -49,23 +49,38 @@ def extract_tampered_info(filename):
     
     return info if info else None
 
+def get_mask_filename(tp_filename):
+    """
+    Get corresponding mask filename for a tampered image.
+    Mask files have '_gt' appended before the extension.
+    Example: Tp_D_CND_M_N_ani00018_sec00096_00138.tif -> Tp_D_CND_M_N_ani00018_sec00096_00138_gt.png
+    """
+    # Remove the extension from the tampered filename
+    base_name = os.path.splitext(tp_filename)[0]
+    # Add '_gt' suffix
+    mask_name = base_name + '_gt'
+    return mask_name
+
 def organize_dataset(dataset_folder, output_folder):
     """
     Organize dataset into 'paired' and 'unknown' folders for all categories.
+    Also copies corresponding mask images.
     
     Args:
-        dataset_folder: Path to folder containing Au and Tp subfolders
+        dataset_folder: Path to folder containing Au, Tp, and masking subfolders
         output_folder: Path to output folder for organized data
     """
     au_folder = Path(dataset_folder) / 'Au'
     tp_folder = Path(dataset_folder) / 'Tp'
+    mask_folder = Path(dataset_folder) / 'masking'
     
     # Create output directories (no category subfolders)
     paired_au = Path(output_folder) / 'paired' / 'Au'
     paired_tp = Path(output_folder) / 'paired' / 'Tp'
+    paired_mask = Path(output_folder) / 'paired' / 'Mask'
     unknown_au = Path(output_folder) / 'unknown' / 'Au'
     
-    for folder in [paired_au, paired_tp, unknown_au]:
+    for folder in [paired_au, paired_tp, paired_mask, unknown_au]:
         folder.mkdir(parents=True, exist_ok=True)
     
     # Dictionary to store authentic files by category and number
@@ -76,8 +91,21 @@ def organize_dataset(dataset_folder, output_folder):
     # Format: has_tampered[category][number] = True/False
     has_tampered = defaultdict(lambda: defaultdict(bool))
     
+    # Dictionary to store mask files by filename
+    mask_files = {}
+    
+    # Get all mask images
+    print("Scanning mask images...")
+    if mask_folder.exists():
+        for file in mask_folder.iterdir():
+            if file.is_file() and file.suffix.lower() in ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp']:
+                mask_files[file.name] = file
+                print(f"  Found mask: {file.name}")
+    else:
+        print(f"  Warning: Mask folder not found at {mask_folder}")
+    
     # Get all authentic images
-    print("Scanning authentic images...")
+    print("\nScanning authentic images...")
     if au_folder.exists():
         for file in au_folder.iterdir():
             if file.is_file() and file.suffix.lower() in ['.jpg', '.jpeg', '.png', '.tif', '.tiff']:
@@ -133,21 +161,45 @@ def organize_dataset(dataset_folder, output_folder):
                     stats[category]['unknown'] += 1
                     print(f"  ? Unknown: {au_file.name}")
     
-    # Copy all tampered images
+    # Copy all tampered images and their corresponding masks
     print("\n" + "="*60)
-    print("Organizing tampered images...")
+    print("Organizing tampered images and masks...")
     print("="*60)
     
     tp_stats = defaultdict(int)
+    mask_stats = {'found': 0, 'missing': 0}
+    
     for info, tp_file in tp_files:
         source_cat = info['source_category']
         source_num = info['source_number']
         
         # Check if the source authentic image exists
         if source_num in au_files[source_cat]:
+            # Copy tampered image
             shutil.copy2(tp_file, paired_tp / tp_file.name)
             tp_stats[source_cat] += 1
-            print(f"  Copied: {tp_file.name} (source: {source_cat}_{source_num})")
+            print(f"  Copied Tp: {tp_file.name} (source: {source_cat}_{source_num})")
+            
+            # Copy corresponding mask image if it exists
+            mask_filename = get_mask_filename(tp_file.name)
+            
+            # Try different extensions for mask files
+            mask_found = False
+            for ext in ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp']:
+                # Remove current extension and try with new one
+                mask_name_base = os.path.splitext(mask_filename)[0]
+                mask_name_with_ext = mask_name_base + ext
+                
+                if mask_name_with_ext in mask_files:
+                    shutil.copy2(mask_files[mask_name_with_ext], paired_mask / mask_files[mask_name_with_ext].name)
+                    mask_stats['found'] += 1
+                    print(f"    + Mask: {mask_files[mask_name_with_ext].name}")
+                    mask_found = True
+                    break
+            
+            if not mask_found:
+                mask_stats['missing'] += 1
+                print(f"    ! Mask not found for: {tp_file.name}")
     
     # Print summary
     print("\n" + "="*70)
@@ -174,9 +226,14 @@ def organize_dataset(dataset_folder, output_folder):
     print("-"*70)
     print(f"{'TOTAL':<12} {total_paired_au:<12} {total_paired_tp:<12} {total_unknown_au:<12}")
     print("="*70)
+    print(f"\nMask Statistics:")
+    print(f"  Masks found and copied: {mask_stats['found']}")
+    print(f"  Masks missing: {mask_stats['missing']}")
+    print("="*70)
     print(f"\nOutput folders:")
     print(f"  Paired Au: {paired_au}")
     print(f"  Paired Tp: {paired_tp}")
+    print(f"  Paired Mask: {paired_mask}")
     print(f"  Unknown Au: {unknown_au}")
 
 if __name__ == "__main__":
@@ -191,7 +248,7 @@ if __name__ == "__main__":
         dataset_folder = sys.argv[1]
         output_folder = sys.argv[2] if len(sys.argv) > 2 else output_folder
     
-    print("\nDataset Organization Script (All Categories)")
+    print("\nDataset Organization Script (All Categories with Masks)")
     print("="*60)
     print(f"Source folder: {dataset_folder}")
     print(f"Output folder: {output_folder}")
