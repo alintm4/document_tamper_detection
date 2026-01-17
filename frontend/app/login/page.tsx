@@ -26,7 +26,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,13 +34,25 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
+        // Save token and user info to localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({
+          username: data.username,
+          email: data.email,
+          name: data.name,
+          tier: data.tier,
+          upload_count: data.upload_count,
+          upload_limit: data.upload_limit
+        }));
         router.push('/dashboard');
       } else {
-        setError('Invalid email or password');
+        setError(data.error || 'Invalid email or password');
       }
     } catch {
-      setError('Login failed. Please try again.');
+      setError('Connection failed. Is the server running?');
     } finally {
       setLoading(false);
     }

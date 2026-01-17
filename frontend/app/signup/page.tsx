@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 export default function SignupPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    username: '',
     name: '',
     email: '',
     password: '',
@@ -31,20 +32,26 @@ export default function SignupPage() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (formData.username.length < 3) {
+      setError('Username must be at least 3 characters');
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/signup', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          username: formData.username,
           name: formData.name,
           email: formData.email,
           password: formData.password,
@@ -54,10 +61,11 @@ export default function SignupPage() {
       if (response.ok) {
         router.push('/login?registered=true');
       } else {
-        setError('Registration failed. Please try again.');
+        const data = await response.json();
+        setError(data.error || 'Registration failed. Please try again.');
       }
     } catch {
-      setError('Registration failed. Please try again.');
+      setError('Connection failed. Is the server running?');
     } finally {
       setLoading(false);
     }
@@ -86,8 +94,24 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
+                placeholder="johndoe"
+              />
+            </div>
+
+            <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Name
+                Full Name
               </label>
               <input
                 type="text"
@@ -95,7 +119,6 @@ export default function SignupPage() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                required
                 className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
                 placeholder="John Doe"
               />
