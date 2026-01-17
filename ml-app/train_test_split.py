@@ -184,8 +184,8 @@ if __name__ == "__main__":
     import sys
     
     # Default paths
-    paired_folder = r"C:\Users\Paudel\Desktop\techsprint_xhack\ml-app\organized_dataset\paired"
-    output_folder = r"C:\Users\Paudel\Desktop\techsprint_xhack\ml-app\split_dataset"
+    paired_folder = r"C:\Users\sthar\abcd\techsprint_xhack\ml-app\organized_dataset\paired"
+    output_folder = r"C:\Users\sthar\abcd\techsprint_xhack\ml-app\split_dataset"
     
     # Allow override via command line arguments
     if len(sys.argv) > 1:
