@@ -25,16 +25,35 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
+    console.log('API URL:', apiUrl);
+    console.log('Sending login request to:', `${apiUrl}/login`);
+    console.log('Form data:', formData);
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+      const response = await fetch(`${apiUrl}/login`, {
         method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      // Check if response has content
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server returned non-JSON response');
+      }
 
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (response.ok) {
         // Save token and user info to localStorage
@@ -66,8 +85,9 @@ export default function LoginPage() {
       } else {
         setError(data.error || 'Invalid email or password');
       }
-    } catch {
-      setError('Connection failed. Is the server running?');
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

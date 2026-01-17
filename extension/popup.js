@@ -37,7 +37,7 @@ function setupEventListeners() {
 // Check if backend is running
 async function checkBackendStatus() {
   try {
-    const response = await fetch('http://localhost:5000/health', { 
+    const response = await fetch('http://localhost:8081/health', { 
       method: 'GET',
       signal: AbortSignal.timeout(3000)
     });
@@ -100,7 +100,7 @@ async function checkAuthStatus() {
 // Check anonymous usage stats from backend
 async function checkAnonymousStats() {
   try {
-    const response = await fetch('http://127.0.0.1:5000/anonymous/stats', {
+    const response = await fetch('http://localhost:8081/anonymous/stats', {
       method: 'GET',
       signal: AbortSignal.timeout(3000)
     });

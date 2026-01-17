@@ -13,9 +13,13 @@ from database import get_db
 auth_bp = Blueprint('auth', __name__)
 
 
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/register', methods=['POST', 'OPTIONS'])
 def register():
     """Register a new user"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     data = request.json
     username = data.get('username')
     email = data.get('email')
@@ -58,9 +62,13 @@ def register():
     })
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     """Login and get JWT token - accepts username or email"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     data = request.json
     username = data.get('username')
     email = data.get('email')
