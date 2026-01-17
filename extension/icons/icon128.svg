@@ -1,6 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="20" fill="#1f2937"/>
-  <circle cx="56" cy="56" r="28" fill="none" stroke="#fff" stroke-width="6"/>
-  <line x1="76" y1="76" x2="100" y2="100" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
-  <path d="M44 56h24M56 44v24" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bgGrad)"/>
+  <!-- Outer glow ring -->
+  <circle cx="64" cy="64" r="48" fill="none" stroke="url(#glowGrad)" stroke-width="2" opacity="0.3"/>
+  <!-- Shield shape -->
+  <path d="M64 18 L100 32 L100 58 C100 82 82 100 64 110 C46 100 28 82 28 58 L28 32 Z" 
+        fill="url(#shieldGrad)" opacity="0.9"/>
+  <!-- Shield highlight -->
+  <path d="M64 24 L94 36 L94 58 C94 78 78 94 64 103 C50 94 34 78 34 58 L34 36 Z" 
+        fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.5"/>
+  <!-- Eye/Scan symbol -->
+  <ellipse cx="64" cy="58" rx="22" ry="14" fill="none" stroke="#fff" stroke-width="3"/>
+  <circle cx="64" cy="58" r="8" fill="#fff"/>
+  <circle cx="64" cy="58" r="4" fill="#1e3a5f"/>
+  <!-- Scan lines -->
+  <line x1="40" y1="44" x2="88" y2="44" stroke="#60a5fa" stroke-width="2" opacity="0.6"/>
+  <line x1="38" y1="72" x2="90" y2="72" stroke="#60a5fa" stroke-width="2" opacity="0.6"/>
+  <!-- Checkmark -->
+  <path d="M52 82 L60 90 L78 72" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
