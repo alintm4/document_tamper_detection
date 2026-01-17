@@ -18,10 +18,17 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024  
 
 # Tier upload limits
+# Anonymous (no signup): 3 free uploads tracked by IP
+# Free (signed up): 3 + 5 = 8 uploads (bonus for signing up)
+# Pro: 500 uploads
+# Pro Max: Unlimited
+ANONYMOUS_LIMIT = 3       # Free uploads without signup (by IP)
+SIGNUP_BONUS = 5          # Additional uploads for signing up
+
 TIER_LIMITS = {
-    'free': 10,      # Free tier (tracked by IP)
-    'pro': 500,      # Pro tier
-    'pro_max': None  # Unlimited
+    'free': ANONYMOUS_LIMIT + SIGNUP_BONUS,  # 8 uploads for signed up users
+    'pro': 500,                               # Pro tier
+    'pro_max': None                           # Unlimited
 }
 
 

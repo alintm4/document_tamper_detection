@@ -34,18 +34,29 @@ def process_upload(user_id, force=False):
         tier = get_user_tier(conn, user_id)
         can_upload, limit_info = check_upload_limit(conn, user_id=user_id, tier=tier)
     else:
-        tier = 'free'
-        can_upload, limit_info = check_upload_limit(conn, ip_address=ip_address, tier=tier)
+        # Anonymous user - no tier, tracked by IP
+        can_upload, limit_info = check_upload_limit(conn, ip_address=ip_address)
     
     if not can_upload:
         conn.close()
-        return jsonify({
-            'error': 'Upload limit reached',
-            'tier': tier,
-            'limit': limit_info['limit'],
-            'current': limit_info['current'],
-            'upgrade_message': 'Upgrade to Pro for 500 uploads or Pro Max for unlimited uploads'
-        }), 429
+        # Different message for anonymous vs logged in users
+        if not user_id:
+            return jsonify({
+                'error': 'Free upload limit reached',
+                'tier': 'anonymous',
+                'limit': limit_info['limit'],
+                'current': limit_info['current'],
+                'signup_bonus': limit_info.get('signup_bonus', 5),
+                'upgrade_message': f"Sign up FREE to get {limit_info.get('signup_bonus', 5)} more uploads!"
+            }), 429
+        else:
+            return jsonify({
+                'error': 'Upload limit reached',
+                'tier': limit_info['tier'],
+                'limit': limit_info['limit'],
+                'current': limit_info['current'],
+                'upgrade_message': 'Upgrade to Pro for 500 uploads or Pro Max for unlimited uploads'
+            }), 429
     
     # Read file data for hashing
     file_data = file.read()

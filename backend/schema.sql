@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS tier_limits (
 
 
 INSERT OR IGNORE INTO tier_limits (tier, max_uploads, description) VALUES 
-    ('free', 10, 'Free tier - 10 uploads per IP'),
+    ('anonymous', 3, 'Anonymous - 3 free uploads without signup'),
+    ('free', 8, 'Free tier - 8 uploads (3 + 5 signup bonus)'),
     ('pro', 500, 'Pro tier - 500 uploads'),
     ('pro_max', NULL, 'Pro Max tier - Unlimited uploads');

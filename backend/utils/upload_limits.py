@@ -1,7 +1,7 @@
 """
 Upload limit tracking and enforcement
 """
-from config import TIER_LIMITS
+from config import TIER_LIMITS, ANONYMOUS_LIMIT, SIGNUP_BONUS
 
 
 def get_upload_count(conn, user_id=None, ip_address=None) -> int:
@@ -39,15 +39,41 @@ def check_upload_limit(conn, user_id=None, ip_address=None, tier='free') -> tupl
     """
     Check if user/IP has reached upload limit
     
+    Anonymous users (no user_id): ANONYMOUS_LIMIT (3 free)
+    Signed up users: TIER_LIMITS based on their tier
+    
     Returns:
         tuple: (can_upload: bool, limit_info: dict or None)
     """
+    # Anonymous user - use ANONYMOUS_LIMIT
+    if not user_id:
+        limit = ANONYMOUS_LIMIT
+        current_count = get_upload_count(conn, ip_address=ip_address)
+        
+        if current_count >= limit:
+            return False, {
+                'current': current_count,
+                'limit': limit,
+                'tier': 'anonymous',
+                'signup_bonus': SIGNUP_BONUS,
+                'message': f'Sign up to get {SIGNUP_BONUS} more uploads!'
+            }
+        
+        return True, {
+            'current': current_count,
+            'limit': limit,
+            'remaining': limit - current_count,
+            'tier': 'anonymous',
+            'signup_bonus': SIGNUP_BONUS
+        }
+    
+    # Logged in user - use TIER_LIMITS
     limit = TIER_LIMITS.get(tier)
     
     if limit is None:  # Unlimited (pro_max)
         return True, {'tier': tier, 'limit': None, 'remaining': 'unlimited'}
     
-    current_count = get_upload_count(conn, user_id, ip_address)
+    current_count = get_upload_count(conn, user_id=user_id)
     
     if current_count >= limit:
         return False, {
