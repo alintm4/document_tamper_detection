@@ -240,8 +240,8 @@ if __name__ == "__main__":
     import sys
     
     # Default path - configured for your dataset
-    dataset_folder = r"C:\Users\sthar\abcd\techsprint_xhack\ml-app\dataset"
-    output_folder = r"C:\Users\sthar\abcd\techsprint_xhack\ml-app\organized_dataset"
+    dataset_folder = "/Users/abhishekpanthee/Documents/hackathon/ml-app/dataset"
+    output_folder = "/Users/abhishekpanthee/Documents/hackathon/ml-app/organized_dataset"
     
     # Allow override via command line arguments
     if len(sys.argv) > 1:
