@@ -9,6 +9,7 @@ from PIL import Image
 from database import get_db
 from utils.auth import token_required, token_optional
 from utils.helpers import get_client_ip
+from utils.model_service import analyze_image
 
 image_bp = Blueprint('images', __name__)
 
@@ -157,3 +158,107 @@ def delete_image(user_id, image_id):
     conn.close()
     
     return jsonify({'message': 'Image deleted successfully'})
+
+
+@image_bp.route('/analyze', methods=['POST'])
+@token_optional
+def analyze_uploaded_image(user_id):
+    """Analyze an image for forgery detection without saving it"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    try:
+        # Read file data
+        file_data = file.read()
+        
+        # Analyze using the ML model
+        analysis = analyze_image(file_data)
+        
+        if 'error' in analysis:
+            return jsonify({
+                'error': 'Analysis failed',
+                'details': analysis['error']
+            }), 500
+        
+        return jsonify({
+            'success': True,
+            'filename': file.filename,
+            'is_manipulated': analysis['is_manipulated'],
+            'confidence_score': analysis['confidence_score'],
+            'prediction': analysis['prediction'],
+            'analysis_result': analysis['analysis_result'],
+            'raw_scores': analysis.get('raw_scores')
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Analysis failed',
+            'details': str(e)
+        }), 500
+
+
+@image_bp.route('/analyze/<int:image_id>', methods=['POST'])
+@token_optional
+def reanalyze_image(user_id, image_id):
+    """Re-analyze an existing image"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT filename, user_id FROM images WHERE id=?', (image_id,))
+    row = c.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Image not found'}), 404
+    
+    # Check authorization
+    ip_address = get_client_ip()
+    if row['user_id'] and row['user_id'] != user_id:
+        conn.close()
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Load and analyze the image
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], row['filename'])
+    if not os.path.exists(filepath):
+        conn.close()
+        return jsonify({'error': 'Image file not found'}), 404
+    
+    try:
+        analysis = analyze_image(filepath)
+        
+        if 'error' in analysis:
+            conn.close()
+            return jsonify({
+                'error': 'Analysis failed',
+                'details': analysis['error']
+            }), 500
+        
+        # Update database with new analysis
+        c.execute('''
+            UPDATE images 
+            SET analysis_result = ?, is_manipulated = ?, confidence_score = ?
+            WHERE id = ?
+        ''', (analysis['analysis_result'], analysis['is_manipulated'], analysis['confidence_score'], image_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'image_id': image_id,
+            'is_manipulated': analysis['is_manipulated'],
+            'confidence_score': analysis['confidence_score'],
+            'prediction': analysis['prediction'],
+            'analysis_result': analysis['analysis_result'],
+            'raw_scores': analysis.get('raw_scores')
+        })
+        
+    except Exception as e:
+        conn.close()
+        return jsonify({
+            'error': 'Analysis failed',
+            'details': str(e)
+        }), 500

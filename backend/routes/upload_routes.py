@@ -13,6 +13,7 @@ from utils.auth import token_optional
 from utils.helpers import get_client_ip
 from utils.hashing import calculate_file_hash, calculate_image_hash
 from utils.upload_limits import check_upload_limit, increment_upload_count, get_user_tier
+from utils.model_service import analyze_image
 
 upload_bp = Blueprint('upload', __name__)
 
@@ -149,6 +150,16 @@ def process_upload(user_id, force=False):
     ''', (image_hash, file_hash, len(file_data), unique_filename, original_filename))
     image_id = c.lastrowid
     
+    # Analyze image using the ML model
+    analysis = analyze_image(file_data)
+    
+    # Update image with analysis results
+    c.execute('''
+        UPDATE images 
+        SET analysis_result = ?, is_manipulated = ?, confidence_score = ?
+        WHERE id = ?
+    ''', (analysis['analysis_result'], analysis['is_manipulated'], analysis['confidence_score'], image_id))
+    
     # Record this scan
     scan_id = record_scan(conn, image_id, user_id, ip_address, source_site, source_url, image_url)
     
@@ -172,7 +183,11 @@ def process_upload(user_id, force=False):
         'is_cached': False,
         'tier': tier,
         'remaining_uploads': remaining,
-        'source_recorded': bool(source_site or source_url)
+        'source_recorded': bool(source_site or source_url),
+        'analysis_result': analysis['analysis_result'],
+        'is_manipulated': analysis['is_manipulated'],
+        'confidence_score': analysis['confidence_score'],
+        'prediction': analysis['prediction']
     })
 
 
