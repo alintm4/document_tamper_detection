@@ -101,3 +101,6 @@ yarn-error.log*
 ml-app/organized_dataset/
 ml-app/dataset/
 dataset/
+DocTamperV1-TrainingSet/
+data/
+

@@ -240,8 +240,8 @@ if __name__ == "__main__":
     import sys
     
     # Default path - configured for your dataset
-    dataset_folder = r"C:\Users\Paudel\Desktop\techsprint_xhack\ml-app\dataset"
-    output_folder = r"C:\Users\Paudel\Desktop\techsprint_xhack\ml-app\organized_dataset"
+    dataset_folder = r"/home/alintm4/Documents/Techsprint_alternative/ml-app/dataset"
+    output_folder = r"/home/alintm4/Documents/Techsprint_alternative/data/casia_raw"
     
     # Allow override via command line arguments
     if len(sys.argv) > 1:
