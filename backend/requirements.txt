@@ -1,2 +1,7 @@
-fastapi
-uvicorn
+flask
+flask-cors
+pyjwt
+werkzeug
+pillow
+imagehash
+numpy

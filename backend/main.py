@@ -1,21 +1,8 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+"""
+Main entry point - imports from modular app structure
+For backward compatibility, run this file or app.py
+"""
+from app import app
 
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.post("/analyze")
-async def analyze_image(file: UploadFile = File(...)):
-    # Dummy logic for now
-    # In production, call your ML model here
-    contents = await file.read()
-    # Placeholder: always returns authentic
-    return JSONResponse({"result": "authentic", "filename": file.filename})
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
