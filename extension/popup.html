@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Analyzer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 320px;
+      min-height: 200px;
+      background: #f9fafb;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+      color: white;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .content {
+      padding: 16px;
+    }
+
+    /* Login/Register Form */
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .form-group input {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #1f2937;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #374151;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+
+    .btn-secondary:hover {
+      background: #f3f4f6;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #ef4444;
+    }
+
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .auth-toggle {
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .auth-toggle a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .auth-toggle a:hover {
+      text-decoration: underline;
+    }
+
+    /* User Info */
+    .user-info {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .tier-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .tier-free {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .tier-pro {
+      background: #dbeafe;
+      color: #3b82f6;
+    }
+
+    .tier-pro_max {
+      background: #fef3c7;
+      color: #f59e0b;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 6px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    /* Error/Success Messages */
+    .message {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .message.error {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .message.success {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    /* Anonymous Info */
+    .anonymous-info {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .anonymous-info p {
+      color: #6b7280;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+    }
+
+    /* Instructions */
+    .instructions {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f0f9ff;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #0369a1;
+    }
+
+    .instructions strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔍 Image Analyzer</h1>
+    <p>Detect image manipulation with AI</p>
+  </div>
+
+  <div class="content">
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      Loading...
+    </div>
+
+    <!-- Message Container -->
+    <div id="message" class="message" style="display: none;"></div>
+
+    <!-- Anonymous View -->
+    <div id="anonymousView" style="display: none;">
+      <div class="anonymous-info">
+        <p>You're using the extension anonymously.<br>Login for more uploads!</p>
+        <button class="btn btn-primary" onclick="showLogin()">Login</button>
+        <button class="btn btn-secondary" onclick="showRegister()" style="margin-top: 8px;">Create Account</button>
+      </div>
+      <div class="instructions">
+        <strong>How to use:</strong>
+        Right-click on any image and select "Analyze Image for Manipulation"
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" style="display: none;">
+      <form class="auth-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginBtn">Login</button>
+      </form>
+      <div class="auth-toggle">
+        <a onclick="showRegister()">Don't have an account? Register</a>
+      </div>
+      <div class="auth-toggle" style="margin-top: 4px;">
+        <a onclick="showAnonymous()">Continue anonymously</a>
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" style="display: none;">
+      <form class="auth-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="registerUsername" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="registerPassword" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary" id="registerBtn">Create Account</button>
+      </form>
+      <div class="auth-toggle">
+        <a onclick="showLogin()">Already have an account? Login</a>
+      </div>
+    </div>
+
+    <!-- User Dashboard -->
+    <div id="userDashboard" style="display: none;">
+      <div class="user-info">
+        <div class="user-header">
+          <span class="user-name" id="userName">User</span>
+          <span class="tier-badge" id="tierBadge">FREE</span>
+        </div>
+        
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="uploadCount">0</div>
+            <div class="stat-label">Uploads</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="remainingCount">0</div>
+            <div class="stat-label">Remaining</div>
+          </div>
+        </div>
+        
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        
+        <button class="btn btn-danger" onclick="handleLogout()" style="width: 100%;">Logout</button>
+      </div>
+      
+      <div class="instructions">
+        <strong>How to use:</strong>
+        Right-click on any image and select "Analyze Image for Manipulation"
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

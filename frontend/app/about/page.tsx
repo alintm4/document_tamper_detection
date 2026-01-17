@@ -19,7 +19,7 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Mission */}
+          
           <div className="mb-10">
             <div className="bg-gray-50 rounded-lg p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-3">Our Mission</h2>
@@ -29,7 +29,7 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* How It Works */}
+         
           <div className="mb-10">
             <h2 className="text-lg font-medium text-gray-900 mb-4">How It Works</h2>
             <div className="space-y-4">
