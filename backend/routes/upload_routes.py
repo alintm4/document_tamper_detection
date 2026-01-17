@@ -226,3 +226,25 @@ def check_hash(user_id):
         'image_hash': image_hash,
         'file_hash': file_hash
     })
+
+
+@upload_bp.route('/anonymous/stats', methods=['GET'])
+def get_anonymous_stats():
+    """Get upload stats for anonymous user by IP"""
+    from config import ANONYMOUS_LIMIT
+    from utils.upload_limits import get_upload_count
+    
+    conn = get_db()
+    ip_address = get_client_ip()
+    
+    upload_count = get_upload_count(conn, ip_address=ip_address)
+    remaining = max(0, ANONYMOUS_LIMIT - upload_count)
+    
+    conn.close()
+    
+    return jsonify({
+        'upload_count': upload_count,
+        'upload_limit': ANONYMOUS_LIMIT,
+        'remaining': remaining,
+        'tier': 'anonymous'
+    })

@@ -83,6 +83,19 @@ export default function HistoryPage() {
     return true;
   });
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Notify extension about logout
+    window.postMessage({
+      type: 'PROOFLY_AUTH',
+      action: 'logout'
+    }, '*');
+    
+    router.push('/login');
+  };
+
   const getStatusBadge = (isManipulated: boolean | null) => {
     if (isManipulated === true) {
       return (
@@ -116,7 +129,7 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={true} onLogout={handleLogout} />
       
       <main className="flex-1 pt-20 pb-12 px-4">
         <div className="max-w-4xl mx-auto">

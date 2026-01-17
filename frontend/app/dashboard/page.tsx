@@ -106,6 +106,20 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogout = () => {
+    // Clear local storage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Notify extension about logout (for session sync)
+    window.postMessage({
+      type: 'PROOFLY_AUTH',
+      action: 'logout'
+    }, '*');
+    
+    router.push('/login');
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
@@ -210,7 +224,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar isLoggedIn={true} />
+        <Navbar isLoggedIn={true} onLogout={handleLogout} />
         <main className="flex-1 pt-20 flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full"></div>
         </main>
@@ -220,7 +234,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={true} onLogout={handleLogout} />
       
       <main className="flex-1 pt-20 pb-12 px-4">
         <div className="max-w-5xl mx-auto">
@@ -232,8 +246,8 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-500 text-sm flex items-center gap-2 mt-1">
                 {getTierBadge(userStats?.tier || 'free')}
-                {userStats?.remaining !== null && (
-                  <span>• {userStats.remaining} scans remaining</span>
+                {userStats?.remaining != null && (
+                  <span>• {userStats?.remaining} scans remaining</span>
                 )}
               </p>
             </div>

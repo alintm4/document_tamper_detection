@@ -9,6 +9,47 @@ let selectionOverlay = null;
 // Minimum image size to show check button
 const MIN_IMAGE_SIZE = 50;
 
+// Listen for auth messages from the web app (localhost:3000)
+window.addEventListener('message', async (event) => {
+  // Only accept messages from Proofly web app
+  if (event.origin !== 'http://localhost:3000' && event.origin !== 'https://proofly.xyz') {
+    return;
+  }
+  
+  if (event.data && event.data.type === 'PROOFLY_AUTH') {
+    // Forward auth event to background script
+    chrome.runtime.sendMessage({
+      action: 'syncAuth',
+      authAction: event.data.action,
+      token: event.data.token,
+      userInfo: event.data.userInfo
+    });
+  }
+});
+
+// Check for existing session when content script loads on Proofly site
+if (window.location.hostname === 'localhost' && window.location.port === '3000' || 
+    window.location.hostname === 'proofly.xyz') {
+  // Try to read token from localStorage and sync to extension
+  setTimeout(() => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (token && userStr) {
+      try {
+        const userInfo = JSON.parse(userStr);
+        chrome.runtime.sendMessage({
+          action: 'syncAuth',
+          authAction: 'login',
+          token: token,
+          userInfo: userInfo
+        });
+      } catch (e) {
+        console.log('Proofly: Could not sync session', e);
+      }
+    }
+  }, 500);
+}
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -36,25 +77,24 @@ function init() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-// Add hover buttons to all images
+
 function addHoverButtonsToImages() {
   document.querySelectorAll('img').forEach(addHoverButton);
 }
 
-// Add hover check button to an image
 function addHoverButton(img) {
-  // Skip if already has button or too small
+ 
   if (hoverButtons.has(img) || img.width < MIN_IMAGE_SIZE || img.height < MIN_IMAGE_SIZE) {
     return;
   }
   
-  // Wait for image to load
+
   if (!img.complete) {
     img.addEventListener('load', () => addHoverButton(img));
     return;
   }
   
-  // Create button container
+  
   const btnContainer = document.createElement('div');
   btnContainer.className = 'proofly-hover-container';
   
@@ -68,7 +108,7 @@ function addHoverButton(img) {
     </button>
   `;
   
-  // Position relative to image
+  
   const updatePosition = () => {
     const rect = img.getBoundingClientRect();
     if (rect.width < MIN_IMAGE_SIZE || rect.height < MIN_IMAGE_SIZE) {
@@ -80,7 +120,7 @@ function addHoverButton(img) {
     btnContainer.style.left = `${rect.right + window.scrollX - 85}px`;
   };
   
-  // Show/hide on image hover
+ 
   img.addEventListener('mouseenter', () => {
     updatePosition();
     btnContainer.classList.add('visible');
@@ -98,7 +138,7 @@ function addHoverButton(img) {
     }
   });
   
-  // Handle click
+
   btnContainer.querySelector('.proofly-check-btn').addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -136,7 +176,7 @@ function addHoverButton(img) {
   window.addEventListener('resize', updatePosition, { passive: true });
 }
 
-// Listen for messages from background script
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.action) {
     case 'showLoading':
@@ -153,6 +193,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case 'startSelection':
       startRegionSelection();
+      break;
+    case 'clearWebsiteSession':
+   
+      if (window.location.hostname === 'localhost' || window.location.hostname === 'proofly.xyz') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+       
+        if (window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/history')) {
+          window.location.href = '/login';
+        }
+      }
       break;
   }
 });

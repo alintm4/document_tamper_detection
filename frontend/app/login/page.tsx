@@ -47,6 +47,21 @@ export default function LoginPage() {
           upload_count: data.upload_count,
           upload_limit: data.upload_limit
         }));
+        
+        // Notify browser extension about login (for session sync)
+        window.postMessage({
+          type: 'PROOFLY_AUTH',
+          action: 'login',
+          token: data.token,
+          userInfo: {
+            username: data.username,
+            email: data.email,
+            tier: data.tier,
+            upload_count: data.upload_count,
+            upload_limit: data.upload_limit
+          }
+        }, '*');
+        
         router.push('/dashboard');
       } else {
         setError(data.error || 'Invalid email or password');

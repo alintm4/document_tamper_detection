@@ -1,6 +1,6 @@
 // Background service worker for Proofly extension
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://127.0.0.1:5000';
 
 
 let cachedStats = {
@@ -213,9 +213,77 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.action === 'logout') {
-    chrome.storage.local.remove(['authToken', 'userInfo']);
-    cachedStats = { remaining: 3, total: 3, isLoggedIn: false, username: null };
-    sendResponse({ success: true });
+    (async () => {
+      // Clear extension storage
+      await chrome.storage.local.remove(['authToken', 'userInfo']);
+      cachedStats = { remaining: 3, total: 3, isLoggedIn: false, username: null };
+      
+      // Notify all Proofly website tabs to logout
+      try {
+        const tabs = await chrome.tabs.query({ url: ['http://localhost:3000/*', 'https://proofly.xyz/*'] });
+        for (const tab of tabs) {
+          chrome.tabs.sendMessage(tab.id, { action: 'clearWebsiteSession' }).catch(() => {});
+        }
+      } catch (e) {
+        console.log('Could not notify website tabs:', e);
+      }
+      
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
+  
+  // Handle session sync from web app
+  if (message.action === 'syncAuth') {
+    (async () => {
+      try {
+        if (message.authAction === 'login' && message.token && message.userInfo) {
+          // Verify the token is valid by making a stats request
+          const verifyResponse = await fetch(`${API_BASE_URL}/user/stats`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${message.token}`
+            }
+          });
+          
+          if (verifyResponse.ok) {
+            const statsData = await verifyResponse.json();
+            
+            // Save the token and user info
+            await chrome.storage.local.set({
+              authToken: message.token,
+              userInfo: {
+                ...message.userInfo,
+                upload_count: statsData.upload_count,
+                upload_limit: statsData.upload_limit
+              }
+            });
+            
+            // Update cached stats
+            cachedStats = {
+              remaining: statsData.upload_limit - statsData.upload_count,
+              total: statsData.upload_limit,
+              isLoggedIn: true,
+              username: message.userInfo.username
+            };
+            
+            console.log('Proofly: Session synced from web app');
+            sendResponse({ success: true, synced: true });
+          } else {
+            console.log('Proofly: Token verification failed');
+            sendResponse({ success: false, error: 'Token verification failed' });
+          }
+        } else if (message.authAction === 'logout') {
+          await chrome.storage.local.remove(['authToken', 'userInfo']);
+          cachedStats = { remaining: 3, total: 3, isLoggedIn: false, username: null };
+          console.log('Proofly: Session cleared from web app logout');
+          sendResponse({ success: true, synced: true });
+        }
+      } catch (error) {
+        console.error('Proofly: Sync error', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
     return true;
   }
   

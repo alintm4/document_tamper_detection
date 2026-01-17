@@ -77,6 +77,7 @@ async function checkAuthStatus() {
           // Token might be expired
           await chrome.storage.local.remove(['authToken', 'userInfo']);
           showView('anonymous');
+          await checkAnonymousStats();
         }
       } catch (e) {
         // Use cached info
@@ -84,15 +85,9 @@ async function checkAuthStatus() {
         showView('dashboard');
       }
     } else {
-      // Check anonymous usage
-      const { anonymousUploads } = await chrome.storage.local.get('anonymousUploads');
-      const remaining = 3 - (anonymousUploads || 0);
-      updateAnonymousView(remaining);
+      // Anonymous user - get stats from backend
       showView('anonymous');
-      
-      if (remaining <= 0) {
-        showLimitAlert(true);
-      }
+      await checkAnonymousStats();
     }
   } catch (error) {
     console.error('Auth check error:', error);
@@ -100,6 +95,34 @@ async function checkAuthStatus() {
   }
   
   showLoading(false);
+}
+
+// Check anonymous usage stats from backend
+async function checkAnonymousStats() {
+  try {
+    const response = await fetch('http://127.0.0.1:5000/anonymous/stats', {
+      method: 'GET',
+      signal: AbortSignal.timeout(3000)
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const remaining = data.remaining || (3 - (data.upload_count || 0));
+      updateAnonymousView(remaining);
+      
+      if (remaining <= 0) {
+        showLimitAlert(true);
+      }
+    } else {
+      // Fallback to local storage
+      const { anonymousUploads } = await chrome.storage.local.get('anonymousUploads');
+      updateAnonymousView(3 - (anonymousUploads || 0));
+    }
+  } catch (e) {
+    // Fallback to local storage if backend is down
+    const { anonymousUploads } = await chrome.storage.local.get('anonymousUploads');
+    updateAnonymousView(3 - (anonymousUploads || 0));
+  }
 }
 
 // Show specific view
