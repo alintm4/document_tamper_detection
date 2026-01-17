@@ -102,3 +102,10 @@ ml-app/organized_dataset/
 ml-app/dataset/
 dataset/
 /ml-app/split_dataset/
+
+# ML model files
+ml-app/model-training/*.keras
+ml-app/model-training/*.h5
+ml-app/model-training/*.pth
+*.keras
+*.h5
