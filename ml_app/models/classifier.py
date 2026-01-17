@@ -1,11 +1,11 @@
 import torch.nn as nn
-from torchvision.models import convnext_tiny
+from torchvision.models import mobilenet_v3_small
 
 class TamperClassifier(nn.Module):
     def __init__(self):
         super().__init__()
-        self.net = convnext_tiny(weights="DEFAULT")
-        self.net.classifier[2] = nn.Linear(768, 2)
+        self.backbone = mobilenet_v3_small(weights="IMAGENET1K_V1")
+        self.backbone.classifier[3] = nn.Linear(1024, 2)
 
     def forward(self, x):
-        return self.net(x)
+        return self.backbone(x)

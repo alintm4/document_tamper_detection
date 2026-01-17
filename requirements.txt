@@ -5,3 +5,7 @@ tqdm
 lmdb
 numpy
 msgpack
+torch
+torchvision 
+scikit-image
+matplotlib

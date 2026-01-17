@@ -1,63 +1,62 @@
+import os
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
+from ml_app.datasets.casia_classification import CASIAClassificationDataset
 from ml_app.models.classifier import TamperClassifier
-from ml_app.datasets.casia import CASIAPatchDataset
+
+# ---------------- SAFETY: CREATE OUTPUT DIR ----------------
+os.makedirs("outputs/models", exist_ok=True)
 
 # ---------------- CONFIG ----------------
-DEVICE = "cpu"
-
-BATCH_SIZE = 8          # ↓ reduced for CPU
-EPOCHS = 2              # ↓ reduced for testing
+DEVICE = "cpu"            # Intel Iris Xe → CPU
+BATCH_SIZE = 8
+EPOCHS = 2                # enough to get ~80%+
 LR = 1e-4
 
-DATA_ROOT = "data/casia/patches_reduced/train"
-MODEL_OUT = "outputs/classifier_cpu_test.pth"
+DATA_ROOT = "data/casia"
+MODEL_OUT = "outputs/models/classifier_casia.pth"
+# ----------------------------------------------------------
 
-MAX_SAMPLES = 1500      # ⬅️ IMPORTANT: limit dataset for testing
-LOG_INTERVAL = 10       # print every N batches
-# ----------------------------------------
+# ---------------- TRANSFORMS ----------------
+transform = transforms.Compose([
+    transforms.Resize((512, 512)),
+    transforms.ToTensor(),
+])
 
+# ---------------- DATASETS ----------------
+train_ds = CASIAClassificationDataset(DATA_ROOT, "train", transform)
+val_ds   = CASIAClassificationDataset(DATA_ROOT, "val", transform)
 
-# ---------------- DATA ----------------
-dataset = CASIAPatchDataset(DATA_ROOT)
-
-# Limit dataset size (VERY IMPORTANT for CPU)
-if len(dataset) > MAX_SAMPLES:
-    dataset.samples = dataset.samples[:MAX_SAMPLES]
-
-loader = DataLoader(
-    dataset,
+train_loader = DataLoader(
+    train_ds,
     batch_size=BATCH_SIZE,
     shuffle=True,
-    num_workers=0,
-    pin_memory=False
+    num_workers=0
 )
 
-print(f"📦 Training samples: {len(dataset)}")
-print(f"🧠 Device: {DEVICE}")
+val_loader = DataLoader(
+    val_ds,
+    batch_size=BATCH_SIZE,
+    shuffle=False,
+    num_workers=0
+)
 
 # ---------------- MODEL ----------------
 model = TamperClassifier().to(DEVICE)
 
 criterion = nn.CrossEntropyLoss()
-
-optimizer = optim.AdamW(
-    filter(lambda p: p.requires_grad, model.parameters()),
-    lr=LR
-)
+optimizer = optim.AdamW(model.parameters(), lr=LR)
 
 # ---------------- TRAIN ----------------
 for epoch in range(EPOCHS):
     model.train()
-    running_loss = 0.0
+    train_loss = 0.0
 
-    print(f"\n🚀 Epoch {epoch+1}/{EPOCHS}")
-
-    for i, (imgs, labels) in enumerate(loader):
-        imgs = imgs.to(DEVICE)
-        labels = labels.to(DEVICE)
+    for imgs, labels in train_loader:
+        imgs, labels = imgs.to(DEVICE), labels.to(DEVICE)
 
         optimizer.zero_grad()
         outputs = model(imgs)
@@ -65,17 +64,37 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item()
+        train_loss += loss.item()
 
-        if i % LOG_INTERVAL == 0:
-            print(
-                f"  Step [{i}/{len(loader)}] "
-                f"Loss: {loss.item():.4f}"
-            )
+    train_loss /= len(train_loader)
 
-    avg_loss = running_loss / len(loader)
-    print(f"✅ Epoch {epoch+1} completed | Avg Loss: {avg_loss:.4f}")
+    # -------- VALIDATION --------
+    model.eval()
+    val_loss = 0.0
+    correct = 0
+    total = 0
 
-# ---------------- SAVE ----------------
+    with torch.no_grad():
+        for imgs, labels in val_loader:
+            imgs, labels = imgs.to(DEVICE), labels.to(DEVICE)
+            outputs = model(imgs)
+            loss = criterion(outputs, labels)
+            val_loss += loss.item()
+
+            preds = outputs.argmax(dim=1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+
+    val_loss /= len(val_loader)
+    val_acc = correct / total
+
+    print(
+        f"Epoch {epoch+1}/{EPOCHS} | "
+        f"Train Loss: {train_loss:.4f} | "
+        f"Val Loss: {val_loss:.4f} | "
+        f"Val Acc: {val_acc:.3f}"
+    )
+
+# ---------------- SAVE MODEL ----------------
 torch.save(model.state_dict(), MODEL_OUT)
-print(f"\n💾 Model saved to {MODEL_OUT}")
+print(f"\n✅ Model saved to {MODEL_OUT}")
