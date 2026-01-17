@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Analyzer</title>
+  <title>Proofly</title>
   <style>
     * {
       margin: 0;
@@ -274,8 +274,14 @@
 </head>
 <body>
   <div class="header">
-    <h1>🔍 Image Analyzer</h1>
-    <p>Detect image manipulation with AI</p>
+    <h1>
+      <svg class="header-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+      Proofly
+    </h1>
+    <p>Verify image authenticity with AI</p>
   </div>
 
   <div class="content">
@@ -290,9 +296,21 @@
     <!-- Anonymous View -->
     <div id="anonymousView" style="display: none;">
       <div class="anonymous-info">
-        <p>You're using the extension anonymously.<br>Login for more uploads!</p>
-        <button class="btn btn-primary" onclick="showLogin()">Login</button>
-        <button class="btn btn-secondary" onclick="showRegister()" style="margin-top: 8px;">Create Account</button>
+        <div class="gift-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="8" width="18" height="14" rx="2"/>
+            <path d="M12 8v14"/>
+            <path d="M3 12h18"/>
+            <path d="M12 8c-2-2-4-2.5-4-4a2 2 0 114 2"/>
+            <path d="M12 8c2-2 4-2.5 4-4a2 2 0 10-4 2"/>
+          </svg>
+        </div>
+        <p><strong>3 Free Uploads</strong> without signup!</p>
+        <p style="color: #22c55e; font-weight: 500; margin-bottom: 12px;">
+          Sign up FREE → Get <strong>+5 more</strong> uploads!
+        </p>
+        <button class="btn btn-primary" onclick="showRegister()">Sign Up Free</button>
+        <button class="btn btn-secondary" onclick="showLogin()" style="margin-top: 8px;">Already have account? Login</button>
       </div>
       <div class="instructions">
         <strong>How to use:</strong>

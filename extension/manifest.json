@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Image Analyzer",
+  "name": "Proofly",
   "version": "1.0.0",
-  "description": "Analyze images for manipulation detection with AI",
+  "description": "Detect image manipulation & verify authenticity with AI",
   "permissions": [
     "contextMenus",
     "activeTab",

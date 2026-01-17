@@ -1,4 +1,4 @@
-// Background service worker for Image Analyzer extension
+// Background service worker for Proofly extension
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -6,41 +6,38 @@ const API_BASE_URL = 'http://localhost:5000';
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'analyzeImage',
-    title: 'Analyze Image for Manipulation',
+    title: ' Check with Proofly',
     contexts: ['image']
   });
   
   chrome.contextMenus.create({
-    id: 'analyzeImageQuick',
-    title: 'Quick Analyze (No Overlay)',
-    contexts: ['image']
+    id: 'selectRegion',
+    title: ' Select Region to Check',
+    contexts: ['page']
   });
 });
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'analyzeImage' || info.menuItemId === 'analyzeImageQuick') {
-    const showOverlay = info.menuItemId === 'analyzeImage';
-    
+  if (info.menuItemId === 'selectRegion') {
+    // Start region selection mode
+    await chrome.tabs.sendMessage(tab.id, { action: 'startSelection' });
+    return;
+  }
+  
+  if (info.menuItemId === 'analyzeImage') {
     try {
-      // Send message to content script to show loading state
       await chrome.tabs.sendMessage(tab.id, {
         action: 'showLoading',
         imageUrl: info.srcUrl
       });
       
-      // Fetch the image
       const imageBlob = await fetchImage(info.srcUrl);
-      
-      // Get auth token from storage
       const { authToken } = await chrome.storage.local.get('authToken');
-      
-      // Upload and analyze
       const result = await analyzeImage(imageBlob, authToken);
       
-      // Send result to content script
       await chrome.tabs.sendMessage(tab.id, {
-        action: showOverlay ? 'showResult' : 'showNotification',
+        action: 'showResult',
         imageUrl: info.srcUrl,
         result: result
       });
@@ -85,6 +82,21 @@ async function analyzeImage(imageBlob, authToken) {
   const uploadData = await uploadResponse.json();
   
   if (!uploadResponse.ok) {
+    // Handle upload limit reached
+    if (uploadResponse.status === 429) {
+      const isAnonymous = uploadData.tier === 'anonymous';
+      return {
+        status: 'limit_reached',
+        message: isAnonymous 
+          ? `Free limit reached! Sign up to get ${uploadData.signup_bonus || 5} more uploads!`
+          : uploadData.upgrade_message || 'Upload limit reached',
+        tier: uploadData.tier,
+        limit: uploadData.limit,
+        current: uploadData.current,
+        signup_bonus: uploadData.signup_bonus
+      };
+    }
+    
     // Handle duplicate detection
     if (uploadResponse.status === 409) {
       if (uploadData.duplicate_type === 'exact') {
@@ -116,13 +128,28 @@ async function analyzeImage(imageBlob, authToken) {
   };
 }
 
-// Listen for messages from popup
+// Listen for messages from popup and content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle analyze request from content script (hover button)
+  if (message.action === 'analyzeFromContent') {
+    (async () => {
+      try {
+        const imageBlob = await fetchImage(message.imageUrl);
+        const { authToken } = await chrome.storage.local.get('authToken');
+        const result = await analyzeImage(imageBlob, authToken);
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ status: 'error', message: error.message });
+      }
+    })();
+    return true;
+  }
+  
   if (message.action === 'login') {
     handleLogin(message.username, message.password)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ error: error.message }));
-    return true; // Keep channel open for async response
+    return true;
   }
   
   if (message.action === 'register') {

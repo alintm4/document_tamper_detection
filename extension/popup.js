@@ -1,4 +1,4 @@
-// Popup script for Image Analyzer extension
+// Popup script for Proofly extension
 
 // DOM Elements
 const loading = document.getElementById('loading');

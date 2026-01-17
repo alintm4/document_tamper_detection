@@ -1,207 +1,441 @@
-/* Image Analyzer Extension Styles */
+/* Proofly Extension Styles */
 
-/* Loading Overlay */
-.img-analyzer-overlay {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+/* ==================== HOVER CHECK BUTTON ==================== */
+.proofly-hover-container {
+  position: absolute;
+  z-index: 999998;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.proofly-hover-container.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.proofly-check-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.proofly-check-btn:hover {
+  background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.proofly-check-btn.loading {
+  pointer-events: none;
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+}
+
+.proofly-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: proofly-spin 0.8s linear infinite;
+}
+
+/* ==================== LOADING OVERLAY ==================== */
+.proofly-overlay {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
 }
 
-.img-analyzer-loading {
+.proofly-loading {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   color: white;
   gap: 12px;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
-.img-analyzer-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+.proofly-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #60a5fa;
   border-radius: 50%;
-  animation: img-analyzer-spin 0.8s linear infinite;
+  animation: proofly-spin 0.8s linear infinite;
 }
 
-@keyframes img-analyzer-spin {
+@keyframes proofly-spin {
   to { transform: rotate(360deg); }
 }
 
-/* Result Overlay */
-.img-analyzer-result {
+/* ==================== RESULT OVERLAY ==================== */
+.proofly-result {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  padding: 12px;
-  max-width: 250px;
-  min-width: 180px;
-  pointer-events: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  max-width: 280px;
+  min-width: 200px;
+  overflow: hidden;
+  animation: proofly-slide-in 0.3s ease;
 }
 
-.img-analyzer-result.success {
-  border-left: 4px solid #22c55e;
+@keyframes proofly-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.img-analyzer-result.warning {
-  border-left: 4px solid #f59e0b;
+.proofly-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.img-analyzer-result.info {
-  border-left: 4px solid #3b82f6;
+.proofly-result.success .proofly-result-header {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
 }
 
-.img-analyzer-result.danger {
-  border-left: 4px solid #ef4444;
+.proofly-result.warning .proofly-result-header {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
 }
 
-.img-analyzer-result.error {
-  border-left: 4px solid #ef4444;
+.proofly-result.info .proofly-result-header {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 }
 
-.img-analyzer-badge {
+.proofly-result.danger .proofly-result-header,
+.proofly-result.error .proofly-result-header {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.proofly-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
-.img-analyzer-icon {
-  width: 24px;
-  height: 24px;
+.proofly-icon {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 14px;
+  font-weight: bold;
 }
 
-.success .img-analyzer-icon {
+.success .proofly-icon {
+  background: #22c55e;
+  color: white;
+}
+
+.warning .proofly-icon {
+  background: #f59e0b;
+  color: white;
+}
+
+.info .proofly-icon {
+  background: #3b82f6;
+  color: white;
+}
+
+.danger .proofly-icon,
+.error .proofly-icon {
+  background: #ef4444;
+  color: white;
+}
+
+.proofly-status {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.proofly-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.proofly-close-btn:hover {
+  color: #374151;
+}
+
+.proofly-result-body {
+  padding: 12px 14px;
+}
+
+.proofly-result-body p {
+  margin: 0 0 8px 0;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.proofly-hash {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: 'Monaco', 'Consolas', monospace;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.proofly-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.proofly-bonus {
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+  background: #ecfdf5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* ==================== TOAST NOTIFICATION ==================== */
+.proofly-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999999;
+  transform: translateX(120%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.proofly-toast.show {
+  transform: translateX(0);
+}
+
+.proofly-toast-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  padding: 14px 16px;
+  min-width: 280px;
+  max-width: 380px;
+  border-left: 4px solid;
+}
+
+.proofly-toast-content.success {
+  border-left-color: #22c55e;
+}
+
+.proofly-toast-content.warning {
+  border-left-color: #f59e0b;
+}
+
+.proofly-toast-content.info {
+  border-left-color: #3b82f6;
+}
+
+.proofly-toast-content.error {
+  border-left-color: #ef4444;
+}
+
+.proofly-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.success .proofly-toast-icon {
   background: #dcfce7;
   color: #22c55e;
 }
 
-.warning .img-analyzer-icon {
+.warning .proofly-toast-icon {
   background: #fef3c7;
   color: #f59e0b;
 }
 
-.info .img-analyzer-icon {
+.info .proofly-toast-icon {
   background: #dbeafe;
   color: #3b82f6;
 }
 
-.danger .img-analyzer-icon,
-.error .img-analyzer-icon {
+.error .proofly-toast-icon {
   background: #fee2e2;
   color: #ef4444;
 }
 
-.img-analyzer-status {
-  font-weight: 600;
+.proofly-toast-body {
+  flex: 1;
+}
+
+.proofly-toast-body strong {
+  display: block;
   color: #1f2937;
+  font-size: 14px;
+  margin-bottom: 2px;
 }
 
-.img-analyzer-details {
-  color: #6b7280;
+.proofly-toast-body p {
+  margin: 0;
+  color: #4b5563;
   font-size: 13px;
+  line-height: 1.4;
 }
 
-.img-analyzer-details p {
-  margin: 0 0 4px 0;
-  color: #374151;
-}
-
-.img-analyzer-details small {
+.proofly-toast-body small {
   display: block;
   color: #9ca3af;
   font-size: 11px;
+  margin-top: 4px;
 }
 
-.img-analyzer-close {
-  position: absolute;
-  top: 4px;
-  right: 4px;
+.proofly-toast-body .proofly-bonus {
+  margin-top: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.proofly-toast-close {
   background: none;
   border: none;
   font-size: 18px;
   color: #9ca3af;
   cursor: pointer;
-  padding: 4px 8px;
-  line-height: 1;
+  padding: 0;
+  margin-left: 8px;
 }
 
-.img-analyzer-close:hover {
+.proofly-toast-close:hover {
   color: #374151;
 }
 
-/* Toast Notification */
-.img-analyzer-toast {
+/* ==================== REGION SELECTION ==================== */
+.proofly-selection-overlay {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
   z-index: 9999999;
-  transform: translateX(120%);
-  transition: transform 0.3s ease;
+  cursor: crosshair;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.img-analyzer-toast.show {
-  transform: translateX(0);
-}
-
-.img-analyzer-toast-content {
+.proofly-selection-hint {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  padding: 16px;
-  min-width: 250px;
-  max-width: 350px;
+  padding: 12px 20px;
+  border-radius: 30px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: proofly-bounce-in 0.3s ease;
 }
 
-.img-analyzer-toast-content.success {
-  border-left: 4px solid #22c55e;
+@keyframes proofly-bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
 }
 
-.img-analyzer-toast-content.warning {
-  border-left: 4px solid #f59e0b;
+.proofly-hint-icon {
+  font-size: 20px;
 }
 
-.img-analyzer-toast-content.error {
-  border-left: 4px solid #ef4444;
-}
-
-.img-analyzer-toast-content strong {
-  display: block;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-
-.img-analyzer-toast-content p {
-  margin: 0;
+.proofly-selection-hint span {
   color: #374151;
   font-size: 14px;
+  font-weight: 500;
 }
 
-.img-analyzer-toast-content small {
-  display: block;
-  color: #9ca3af;
+.proofly-cancel-btn {
+  background: #f3f4f6;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 15px;
+  color: #6b7280;
   font-size: 12px;
-  margin-top: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* Fade out animation */
-.img-analyzer-overlay.fade-out {
+.proofly-cancel-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.proofly-selection-box {
+  position: fixed;
+  border: 3px dashed #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  display: none;
+  pointer-events: none;
+}
+
+/* ==================== FADE OUT ==================== */
+.proofly-overlay.fade-out {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
