@@ -104,3 +104,6 @@ dataset/
 DocTamperV1-TrainingSet/
 data/
 
+outputs/models/
+documents/
+*.pth
