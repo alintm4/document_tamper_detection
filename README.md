@@ -22,10 +22,10 @@ Proofly combines cutting-edge AI with practical usability through:
 - **Web Application**: Detailed document analysis with visual tampering highlights
 - **Browser Extension**: One-click verification for any image on the web
 - **REST API**: Easy integration with existing business systems
-- **Deep Learning Model**: ResNet50-based U-Net achieving 92%+ accuracy
+- **Deep Learning Model**: ResNet50-based U-Net achieving 68%+ accuracy
 
-### Key Achievements
-✅ **92-95% accuracy** on diverse tampering datasets  
+### Key Achievements  
+✅ Model with 68%+ accuracy.
 ✅ **2-3 second** analysis time per document  
 ✅ **Pixel-level precision** in identifying tampered regions  
 ✅ **Multi-platform deployment** (web, extension, API)  
@@ -224,7 +224,7 @@ The system provides:
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Python** | 3.8+ | Core programming language |
+| **Python** | 3.13 | Core programming language |
 | **Flask** | 2.3.0 | Web framework for REST API |
 | **TensorFlow/Keras** | 2.14.0 | Deep learning inference |
 | **SQLite** | 3.x | Lightweight database |
@@ -342,7 +342,7 @@ The system provides:
 ### Unique Selling Points
 
 1. **Real-time Browser Integration**: Only solution with seamless browser extension
-2. **High Accuracy**: 92-95% detection rate on diverse datasets
+2. **Great Accuracy**: 68-76% detection rate on diverse datasets
 3. **Explainable AI**: Pixel-level visualization of tampering locations
 4. **Production-Ready**: Complete authentication, database, and API
 5. **Scalable Architecture**: Tiered access and quota management
