@@ -17,7 +17,7 @@ EPOCHS = 2                # enough to get ~80%+
 LR = 1e-4
 
 DATA_ROOT = "data/casia"
-MODEL_OUT = "outputs/models/classifier_casia.pth"
+MODEL_OUT = "outputs/models/classifier_casia_efficient_net.pth"
 # ----------------------------------------------------------
 
 # ---------------- TRANSFORMS ----------------

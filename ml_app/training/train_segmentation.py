@@ -15,7 +15,7 @@ LR = 1e-4
 NUM_WORKERS = 0                # VERY IMPORTANT on Arch Linux
 
 DATA_ROOT = "data/casia"
-MODEL_OUT = "outputs/models/unet_casia.pth"
+MODEL_OUT = "outputs/models/deeplabv3.pth"
 # ==========================================
 
 os.makedirs("outputs/models", exist_ok=True)
