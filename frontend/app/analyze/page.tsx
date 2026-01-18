@@ -10,6 +10,10 @@ interface AnalysisResult {
   result?: 'authentic' | 'manipulated';
   confidence?: number;
   error?: string;
+  heatmap_url?: string;
+  original_url?: string;
+  filename?: string;
+  heatmap_filename?: string;
 }
 
 export default function AnalyzePage() {
@@ -24,12 +28,26 @@ export default function AnalyzePage() {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analyze`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
         method: 'POST',
         body: formData,
       });
       const data = await response.json();
-      setResult(data);
+      
+      // Map backend response to our interface
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const analysisResult: AnalysisResult = {
+        result: data.is_manipulated ? 'manipulated' : 'authentic',
+        confidence: data.confidence_score ? data.confidence_score / 100 : undefined,
+        error: data.error,
+        filename: data.filename,
+        heatmap_filename: data.heatmap_filename,
+        // Build URLs for images
+        original_url: data.filename ? `${apiUrl}/uploads/${data.filename}` : undefined,
+        heatmap_url: data.heatmap_filename ? `${apiUrl}/uploads/${data.heatmap_filename}` : undefined,
+      };
+      
+      setResult(analysisResult);
     } catch (error) {
       setResult({ error: 'Failed to analyze image. Make sure the backend is running.' });
     } finally {

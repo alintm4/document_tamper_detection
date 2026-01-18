@@ -24,6 +24,7 @@ wheels/
 *.egg
 
 
+
 # Virtual environments
 venv/
 ENV/
@@ -109,6 +110,7 @@ ml-app/model-training/*.h5
 ml-app/model-training/*.pth
 *.keras
 *.h5
+*.pth
 
 invoices_dataset/
 stamp_dataset/

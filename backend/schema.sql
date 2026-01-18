@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS images (
     analysis_result TEXT,             -- JSON with AI analysis
     is_manipulated BOOLEAN DEFAULT 0,
     confidence_score REAL,
+    heatmap_filename TEXT,            -- Filename of heatmap overlay (if tampered)
+    mask_filename TEXT,               -- Filename of segmentation mask (if tampered)
     first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     scan_count INTEGER DEFAULT 1
 );

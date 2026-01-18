@@ -21,15 +21,21 @@ upload_bp = Blueprint('upload', __name__)
 def find_existing_image(conn, image_hash):
     """Check if an image with this hash already exists"""
     c = conn.cursor()
-    c.execute('SELECT id, analysis_result, is_manipulated, confidence_score, scan_count FROM images WHERE image_hash = ?', (image_hash,))
+    c.execute('''SELECT id, analysis_result, is_manipulated, confidence_score, scan_count, 
+                 heatmap_filename, mask_filename FROM images WHERE image_hash = ?''', (image_hash,))
     row = c.fetchone()
     if row:
+        # Convert SQLite 0/1 to proper boolean
+        is_manipulated = bool(row[2]) if row[2] is not None else None
+        print(f"[CACHE] Found existing image: id={row[0]}, is_manipulated={is_manipulated} (raw={row[2]})")
         return {
             'id': row[0],
             'analysis_result': row[1],
-            'is_manipulated': row[2],
+            'is_manipulated': is_manipulated,
             'confidence_score': row[3],
-            'scan_count': row[4]
+            'scan_count': row[4],
+            'heatmap_filename': row[5],
+            'mask_filename': row[6]
         }
     return None
 
@@ -109,15 +115,17 @@ def process_upload(user_id, force=False):
     # Check if this image already exists (by perceptual hash)
     existing = find_existing_image(conn, image_hash)
     
-    if existing:
-        # Image already analyzed - just record this scan, don't count toward limit
+    if existing and existing['is_manipulated'] is not None:
+        # Image already analyzed with valid result - just record this scan, don't count toward limit
         scan_id = record_scan(conn, existing['id'], user_id, ip_address, source_site, source_url, image_url)
         conn.commit()
         conn.close()
         
         remaining = limit_info.get('remaining', 'unlimited') if limit_info else 'unlimited'
         
-        return jsonify({
+        print(f"[CACHE HIT] Returning cached result: is_manipulated={existing['is_manipulated']}, type={type(existing['is_manipulated'])}")
+        
+        response_data = {
             'message': 'Image already analyzed',
             'image_id': existing['id'],
             'image_hash': image_hash,
@@ -129,8 +137,12 @@ def process_upload(user_id, force=False):
             'confidence_score': existing['confidence_score'],
             'tier': tier,
             'remaining_uploads': remaining,
-            'source_recorded': bool(source_site or source_url)
-        })
+            'source_recorded': bool(source_site or source_url),
+            'heatmap_filename': existing.get('heatmap_filename'),
+            'mask_filename': existing.get('mask_filename')
+        }
+        print(f"[CACHE HIT] Response: {response_data}")
+        return jsonify(response_data)
     
     # New image - needs analysis, counts toward limit
     original_filename = secure_filename(file.filename)
@@ -153,12 +165,14 @@ def process_upload(user_id, force=False):
     # Analyze image using the ML model
     analysis = analyze_image(file_data)
     
-    # Update image with analysis results
+    # Update image with analysis results (including heatmap and mask filenames)
     c.execute('''
         UPDATE images 
-        SET analysis_result = ?, is_manipulated = ?, confidence_score = ?
+        SET analysis_result = ?, is_manipulated = ?, confidence_score = ?,
+            heatmap_filename = ?, mask_filename = ?
         WHERE id = ?
-    ''', (analysis['analysis_result'], analysis['is_manipulated'], analysis['confidence_score'], image_id))
+    ''', (analysis['analysis_result'], analysis['is_manipulated'], analysis['confidence_score'],
+          analysis.get('heatmap_filename'), analysis.get('mask_filename'), image_id))
     
     # Record this scan
     scan_id = record_scan(conn, image_id, user_id, ip_address, source_site, source_url, image_url)
@@ -187,7 +201,9 @@ def process_upload(user_id, force=False):
         'analysis_result': analysis['analysis_result'],
         'is_manipulated': analysis['is_manipulated'],
         'confidence_score': analysis['confidence_score'],
-        'prediction': analysis['prediction']
+        'prediction': analysis['prediction'],
+        'heatmap_filename': analysis.get('heatmap_filename'),
+        'mask_filename': analysis.get('mask_filename')
     })
 
 

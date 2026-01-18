@@ -43,6 +43,7 @@ interface ScanResult {
   message?: string;
   is_manipulated?: boolean;
   confidence_score?: number;
+  heatmap_filename?: string;
   error?: string;
 }
 
@@ -162,7 +163,8 @@ export default function DashboardPage() {
           status: 'success',
           message: data.is_cached ? 'Image already analyzed' : 'Image uploaded successfully',
           is_manipulated: data.is_manipulated,
-          confidence_score: data.confidence_score
+          confidence_score: data.confidence_score,
+          heatmap_filename: data.heatmap_filename
         });
         // Refresh data
         if (token) fetchData(token);
@@ -391,11 +393,6 @@ export default function DashboardPage() {
                             </p>
                             <p className="text-gray-400 text-xs mt-1">
                               {formatDate(scan.scanned_at)}
-                              {scan.image.confidence_score && (
-                                <span className="ml-2">
-                                  • {Math.round(scan.image.confidence_score * 100)}% confidence
-                                </span>
-                              )}
                             </p>
                           </div>
                         </div>
@@ -635,10 +632,18 @@ export default function DashboardPage() {
                         {scanResult.is_manipulated ? 'Potentially Fake' : 'Likely Authentic'}
                       </p>
                       <p className="text-gray-500 text-sm mb-2">{scanResult.message}</p>
-                      {scanResult.confidence_score !== undefined && (
-                        <p className="text-gray-400 text-xs">
-                          Confidence: {Math.round(scanResult.confidence_score * 100)}%
-                        </p>
+                      
+                      {/* Show heatmap for manipulated images */}
+                      {scanResult.is_manipulated && scanResult.heatmap_filename && (
+                        <div className="mt-4 mb-4">
+                          <p className="text-gray-500 text-xs mb-2">Detected Tampering:</p>
+                          <img 
+                            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${scanResult.heatmap_filename}`}
+                            alt="Heatmap showing tampered regions"
+                            className="max-h-48 rounded-lg mx-auto border border-red-200"
+                          />
+                          <p className="text-gray-400 text-xs mt-2">Red/yellow areas indicate manipulated regions</p>
+                        </div>
                       )}
                     </>
                   )}

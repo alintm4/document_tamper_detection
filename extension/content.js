@@ -18,12 +18,16 @@ window.addEventListener('message', async (event) => {
   
   if (event.data && event.data.type === 'PROOFLY_AUTH') {
     // Forward auth event to background script
-    chrome.runtime.sendMessage({
-      action: 'syncAuth',
-      authAction: event.data.action,
-      token: event.data.token,
-      userInfo: event.data.userInfo
-    });
+    try {
+      chrome.runtime.sendMessage({
+        action: 'syncAuth',
+        authAction: event.data.action,
+        token: event.data.token,
+        userInfo: event.data.userInfo
+      });
+    } catch (e) {
+      console.log('Proofly: Extension context invalidated');
+    }
   }
 });
 
@@ -42,6 +46,10 @@ if (window.location.hostname === 'localhost' && window.location.port === '3000' 
           authAction: 'login',
           token: token,
           userInfo: userInfo
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.log('Proofly: Extension context invalidated');
+          }
         });
       } catch (e) {
         console.log('Proofly: Could not sync session', e);
@@ -150,10 +158,38 @@ function addHoverButton(img) {
       <span>Checking...</span>
     `;
     
-    chrome.runtime.sendMessage({
-      action: 'analyzeFromContent',
-      imageUrl: img.src
-    }, (result) => {
+    try {
+      chrome.runtime.sendMessage({
+        action: 'analyzeFromContent',
+        imageUrl: img.src
+      }, (result) => {
+        if (chrome.runtime.lastError) {
+          console.log('Proofly: Extension context invalidated, please refresh the page');
+          btn.classList.remove('loading');
+          btn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+            <span>Check</span>
+          `;
+          return;
+        }
+        btn.classList.remove('loading');
+        btn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+          <span>Check</span>
+        `;
+        
+        if (result) {
+          showResultOverlay(img.src, result);
+        }
+      });
+    } catch (error) {
+      console.log('Proofly: Extension context invalidated, please refresh the page');
       btn.classList.remove('loading');
       btn.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -162,11 +198,7 @@ function addHoverButton(img) {
         </svg>
         <span>Check</span>
       `;
-      
-      if (result) {
-        showResultOverlay(img.src, result);
-      }
-    });
+    }
   });
   
   document.body.appendChild(btnContainer);
@@ -316,14 +348,22 @@ function rectsOverlap(rect1, rect2) {
 function analyzeImage(imageUrl) {
   showLoadingOverlay(imageUrl);
   
-  chrome.runtime.sendMessage({
-    action: 'analyzeFromContent',
-    imageUrl: imageUrl
-  }, (result) => {
-    if (result) {
-      showResultOverlay(imageUrl, result);
-    }
-  });
+  try {
+    chrome.runtime.sendMessage({
+      action: 'analyzeFromContent',
+      imageUrl: imageUrl
+    }, (result) => {
+      if (chrome.runtime.lastError) {
+        console.log('Proofly: Extension context invalidated, please refresh the page');
+        return;
+      }
+      if (result) {
+        showResultOverlay(imageUrl, result);
+      }
+    });
+  } catch (e) {
+    console.log('Proofly: Extension context invalidated, please refresh the page');
+  }
 }
 
 function findImageByUrl(url) {
@@ -389,7 +429,8 @@ function showResultOverlay(imageUrl, result) {
   container.style.pointerEvents = 'auto';
   
   const ICONS = {
-    success: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>',
+    authentic: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>',
+    fake: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
     warning: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
     info: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>',
     error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6m0-6l6 6"/></svg>',
@@ -397,25 +438,42 @@ function showResultOverlay(imageUrl, result) {
   };
   
   let statusClass = 'success';
-  let statusIcon = ICONS.success;
-  let statusText = 'Verified';
+  let statusIcon = ICONS.authentic;
+  let statusText = 'Authentic';
+  let statusMessage = 'This image appears to be genuine.';
   
-  if (result.status === 'duplicate') {
+  // Debug logging
+  console.log('[Proofly] Result received:', result);
+  console.log('[Proofly] is_manipulated:', result.is_manipulated, 'type:', typeof result.is_manipulated);
+  
+  // Check if image is manipulated (fake) - use truthy check to handle 0/1 or true/false
+  const isManipulated = result.status === 'manipulated' || result.is_manipulated === true || result.is_manipulated === 1;
+  
+  if (isManipulated) {
+    statusClass = 'danger';
+    statusIcon = ICONS.fake;
+    statusText = 'Potentially Fake';
+    statusMessage = 'This image may have been manipulated.';
+  } else if (result.status === 'success' && (result.is_manipulated === false || result.is_manipulated === 0)) {
+    statusClass = 'success';
+    statusIcon = ICONS.authentic;
+    statusText = 'Authentic';
+    statusMessage = 'This image appears to be genuine.';
+  } else if (result.status === 'duplicate') {
     statusClass = 'warning';
     statusIcon = ICONS.warning;
     statusText = 'Duplicate';
+    statusMessage = result.message || 'This image was found before.';
   } else if (result.status === 'similar') {
     statusClass = 'info';
     statusIcon = ICONS.info;
     statusText = 'Similar Found';
-  } else if (result.status === 'manipulated') {
-    statusClass = 'danger';
-    statusIcon = ICONS.error;
-    statusText = 'Manipulated';
+    statusMessage = result.message || 'A similar image was found.';
   } else if (result.status === 'limit_reached') {
     statusClass = 'warning';
     statusIcon = ICONS.gift;
     statusText = 'Limit Reached';
+    statusMessage = result.message || 'You have reached your scan limit.';
     
     // Try to open the extension popup
     try {
@@ -427,7 +485,11 @@ function showResultOverlay(imageUrl, result) {
     statusClass = 'error';
     statusIcon = ICONS.error;
     statusText = 'Error';
+    statusMessage = result.message || 'An error occurred.';
   }
+  
+  // If manipulated and has heatmap, show heatmap as image overlay
+  const showHeatmapOverlay = isManipulated && result.heatmap_url;
   
   container.innerHTML = `
     <div class="proofly-result ${statusClass}">
@@ -441,12 +503,17 @@ function showResultOverlay(imageUrl, result) {
         </button>
       </div>
       <div class="proofly-result-body">
-        <p>${result.message}</p>
-        ${result.image_hash ? `<div class="proofly-hash"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> ${result.image_hash.substring(0, 16)}...</div>` : ''}
+        <p class="proofly-result-message">${statusMessage}</p>
         ${result.remaining_uploads !== undefined && result.remaining_uploads !== 'unlimited' ? `<div class="proofly-meta proofly-remaining"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <strong>${result.remaining_uploads}</strong> scans remaining</div>` : ''}
         ${result.status === 'limit_reached' ? `<button class="proofly-cta-btn" onclick="window.open('http://localhost:3000/signup', '_blank')">Get More Scans →</button>` : ''}
       </div>
     </div>
+    ${showHeatmapOverlay ? `
+      <div class="proofly-heatmap-overlay">
+        <img src="${result.heatmap_url}" alt="Heatmap showing tampered regions" class="proofly-heatmap-full" />
+        <div class="proofly-heatmap-badge">Tampering Detected</div>
+      </div>
+    ` : ''}
   `;
   
   setTimeout(() => {

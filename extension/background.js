@@ -150,12 +150,29 @@ async function analyzeImage(imageBlob, authToken, sourceInfo = {}) {
     throw new Error(uploadData.error || 'Upload failed');
   }
   
+  // Determine status based on is_manipulated - handle both boolean and integer (0/1 from SQLite)
+  const isManipulated = uploadData.is_manipulated === true || uploadData.is_manipulated === 1;
+  const status = isManipulated ? 'manipulated' : 'success';
+  const message = isManipulated 
+    ? 'This image appears to be manipulated'
+    : 'Image verified as authentic';
+  
+  // Build heatmap URL if available
+  const heatmapUrl = uploadData.heatmap_filename 
+    ? `${API_BASE_URL}/uploads/${uploadData.heatmap_filename}` 
+    : null;
+  
   return {
-    status: 'success',
-    message: 'Image analyzed successfully',
+    status: status,
+    message: message,
     image_id: uploadData.image_id,
     image_hash: uploadData.image_hash,
     filename: uploadData.filename,
+    heatmap_url: heatmapUrl,
+    heatmap_filename: uploadData.heatmap_filename,
+    mask_filename: uploadData.mask_filename,
+    is_manipulated: uploadData.is_manipulated,
+    confidence_score: uploadData.confidence_score,
     tier: uploadData.tier,
     remaining_uploads: uploadData.remaining_uploads
   };
