@@ -97,7 +97,8 @@ export default function HistoryPage() {
   };
 
   const getStatusBadge = (isManipulated: boolean | null) => {
-    if (isManipulated === true) {
+    // Convert to boolean properly (handles 0, 1, true, false, null)
+    if (isManipulated === true || isManipulated === 1) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +108,7 @@ export default function HistoryPage() {
         </span>
       );
     }
-    if (isManipulated === false) {
+    if (isManipulated === false || isManipulated === 0) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,11 +119,11 @@ export default function HistoryPage() {
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        Pending
+        Processing
       </span>
     );
   };
