@@ -8,48 +8,49 @@ from ml_app.datasets.casia_segmentation import CASIASegmentationDataset
 from ml_app.models.segmenter import TamperSegmenter
 
 # ================= CONFIG =================
-DEVICE = "cpu"                 # Intel Iris Xe safe
-BATCH_SIZE = 10                 # CPU-friendly
-EPOCHS = 2                    # Safe for overnight training
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+BATCH_SIZE = 8
+EPOCHS = 10                 # 🔥 REAL training
 LR = 1e-4
-NUM_WORKERS = 0                # VERY IMPORTANT on Arch Linux
+NUM_WORKERS = 4             # GPU laptop OK
 
 DATA_ROOT = "data/casia"
-MODEL_OUT = "outputs/models/deeplabv3.pth"
+MODEL_OUT = "outputs/models/deeplabv3_final.pth"
+CKPT_DIR = "outputs/checkpoints/segmentation"
 # ==========================================
 
 os.makedirs("outputs/models", exist_ok=True)
+os.makedirs(CKPT_DIR, exist_ok=True)
+
+# ---------------- METRIC ----------------
+def dice_score(logits, masks, eps=1e-6):
+    preds = torch.sigmoid(logits)
+    preds = (preds > 0.5).float()
+    intersection = (preds * masks).sum()
+    union = preds.sum() + masks.sum()
+    return (2 * intersection + eps) / (union + eps)
 
 # ---------------- DATA ----------------
 train_ds = CASIASegmentationDataset(DATA_ROOT, "train")
 val_ds   = CASIASegmentationDataset(DATA_ROOT, "val")
 
 train_loader = DataLoader(
-    train_ds,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
-    num_workers=NUM_WORKERS,
-    pin_memory=False
+    train_ds, batch_size=BATCH_SIZE,
+    shuffle=True, num_workers=NUM_WORKERS, pin_memory=True
 )
 
 val_loader = DataLoader(
-    val_ds,
-    batch_size=BATCH_SIZE,
-    shuffle=False,
-    num_workers=NUM_WORKERS,
-    pin_memory=False
+    val_ds, batch_size=BATCH_SIZE,
+    shuffle=False, num_workers=NUM_WORKERS, pin_memory=True
 )
 
 # ---------------- MODEL ----------------
-model = TamperSegmenter()
-model.to(DEVICE)
-
-# IMPORTANT: assume UNet DOES NOT apply sigmoid at the end
+model = TamperSegmenter().to(DEVICE)
 criterion = nn.BCEWithLogitsLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
 
 # ---------------- TRAIN ----------------
-print("\n🚀 Starting segmentation training...\n")
+print(f"\n🚀 Segmentation training on {DEVICE}\n")
 
 for epoch in range(EPOCHS):
     model.train()
@@ -57,8 +58,8 @@ for epoch in range(EPOCHS):
 
     train_bar = tqdm(
         train_loader,
-        desc=f"Epoch {epoch+1}/{EPOCHS} [TRAIN]",
-        leave=False
+        desc=f"Epoch {epoch+1}/{EPOCHS}",
+        leave=True
     )
 
     for imgs, masks in train_bar:
@@ -72,33 +73,42 @@ for epoch in range(EPOCHS):
         optimizer.step()
 
         train_loss += loss.item()
-        train_bar.set_postfix(loss=loss.item())
+        train_bar.set_postfix(loss=f"{loss.item():.4f}")
 
     train_loss /= len(train_loader)
 
     # -------- VALIDATION --------
     model.eval()
     val_loss = 0.0
+    val_dice = 0.0
 
     with torch.no_grad():
         for imgs, masks in val_loader:
             imgs = imgs.to(DEVICE)
             masks = masks.to(DEVICE)
-
             logits = model(imgs)
             loss = criterion(logits, masks)
+
             val_loss += loss.item()
+            val_dice += dice_score(logits, masks).item()
 
     val_loss /= len(val_loader)
+    val_dice /= len(val_loader)
 
     print(
-        f"Epoch {epoch+1}/{EPOCHS} | "
+        f"📊 Epoch {epoch+1}/{EPOCHS} | "
         f"Train Loss: {train_loss:.4f} | "
-        f"Val Loss: {val_loss:.4f}"
+        f"Val Loss: {val_loss:.4f} | "
+        f"Dice: {val_dice:.4f}"
     )
 
-# ---------------- SAVE ----------------
-torch.save(model.state_dict(), MODEL_OUT)
+    # -------- CHECKPOINT --------
+    torch.save({
+        "epoch": epoch + 1,
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict()
+    }, f"{CKPT_DIR}/epoch_{epoch+1}.pt")
 
-print("\n Segmentation training completed.")
-print(f"Model saved to: {MODEL_OUT}")
+# ---------------- SAVE FINAL ----------------
+torch.save(model.state_dict(), MODEL_OUT)
+print(f"\n Final segmentation model saved → {MODEL_OUT}")
