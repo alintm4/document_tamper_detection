@@ -109,3 +109,6 @@ ml-app/model-training/*.h5
 ml-app/model-training/*.pth
 *.keras
 *.h5
+
+invoices_dataset/
+stamp_dataset/
