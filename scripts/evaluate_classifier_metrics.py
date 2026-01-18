@@ -9,13 +9,11 @@ import matplotlib.pyplot as plt
 
 from ml_app.models.classifier import TamperClassifier
 
-# ---------------- CONFIG ----------------
 DEVICE = "cpu"
 MODEL_PATH = "outputs/models/classifier_casia.pth"
 DATA_ROOT = "data/casia/images"
 OUT_DIR = "outputs/metrics"
 os.makedirs(OUT_DIR, exist_ok=True)
-# ---------------------------------------
 
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -30,9 +28,7 @@ def load_images(folder, label):
     return data
 
 
-# CASIA structure
-authentic = load_images(os.path.join(DATA_ROOT, "real"), 0)
-tampered  = load_images(os.path.join(DATA_ROOT, "tampered"), 1)
+
 dataset = authentic + tampered
 
 print(f"Total samples: {len(dataset)}")
@@ -58,7 +54,6 @@ with torch.no_grad():
         y_scores.append(probs)
         y_pred.append(pred)
 
-# -------- CONFUSION MATRIX --------
 cm = confusion_matrix(y_true, y_pred)
 plt.figure(figsize=(4, 4))
 plt.imshow(cm, cmap="Blues")
@@ -74,7 +69,6 @@ for i in range(2):
 plt.savefig(f"{OUT_DIR}/confusion_matrix.png", dpi=200)
 plt.close()
 
-# -------- ROC CURVE --------
 fpr, tpr, _ = roc_curve(y_true, y_scores)
 roc_auc = auc(fpr, tpr)
 

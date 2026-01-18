@@ -17,16 +17,12 @@ from torchvision import transforms
 from ml_app.models.classifier import TamperClassifier
 
 
-# ---------------- CONFIG ----------------
 DATA_DIR = "data/casia/images"
 MODEL_PATH = "outputs/models/classifier_casia.pth"
-DEVICE = "cpu"          # Intel Iris Xe
+DEVICE = "cpu"
 IMG_SIZE = 224
 CLASS_NAMES = ["Real", "Tampered"]
-# --------------------------------------
 
-
-# ---------------- TRANSFORMS ----------------
 transform = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
@@ -36,15 +32,11 @@ transform = transforms.Compose([
     )
 ])
 
-
-# ---------------- LOAD MODEL ----------------
 model = TamperClassifier()
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.to(DEVICE)
 model.eval()
 
-
-# ---------------- LOAD DATA ----------------
 def load_images(folder, label):
     samples = []
     for fname in os.listdir(folder):
@@ -58,11 +50,9 @@ tampered  = load_images(os.path.join(DATA_DIR, "tampered"), 1)
 dataset = authentic + tampered
 print(f"Total samples: {len(dataset)}")
 
-
-# ---------------- INFERENCE ----------------
 y_true = []
 y_pred = []
-y_scores = []   # probability of "tampered"
+y_scores = []
 
 with torch.no_grad():
     for path, label in tqdm(dataset):
@@ -83,8 +73,6 @@ y_true = np.array(y_true)
 y_pred = np.array(y_pred)
 y_scores = np.array(y_scores)
 
-
-# ---------------- CONFUSION MATRIX ----------------
 cm = confusion_matrix(y_true, y_pred)
 disp = ConfusionMatrixDisplay(
     confusion_matrix=cm,
@@ -95,8 +83,6 @@ disp.plot(cmap="Blues")
 plt.title("Confusion Matrix – CASIA Tamper Classifier")
 plt.show()
 
-
-# ---------------- ROC CURVE ----------------
 fpr, tpr, _ = roc_curve(y_true, y_scores)
 roc_auc = auc(fpr, tpr)
 
@@ -109,8 +95,6 @@ plt.title("ROC Curve – CASIA Tamper Classifier")
 plt.legend()
 plt.show()
 
-
-# ---------------- METRICS ----------------
 print("\nClassification Report:\n")
 print(classification_report(
     y_true,

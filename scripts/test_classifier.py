@@ -1,5 +1,3 @@
-# test_classifier.py
-
 import sys
 import torch
 import torch.nn as nn
@@ -7,15 +5,11 @@ import torch.nn.functional as F
 from torchvision import models, transforms
 from PIL import Image
 
-# ---------------- CONFIG ----------------
 MODEL_PATH = "outputs/models/classifier_casia.pth"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 IMG_SIZE = 224
 CLASS_NAMES = ["authentic", "tampered"]
-# ---------------------------------------
 
-
-# --------- MODEL (MUST MATCH TRAINING) ---------
 class DocumentClassifier(nn.Module):
     def __init__(self, num_classes=2):
         super().__init__()
@@ -28,8 +22,6 @@ class DocumentClassifier(nn.Module):
     def forward(self, x):
         return self.backbone(x)
 
-
-# ---------------- TRANSFORMS ----------------
 transform = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
@@ -45,8 +37,6 @@ def load_image(path):
     img = transform(img).unsqueeze(0)
     return img
 
-
-# ---------------- MAIN ----------------
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python test_classifier.py <image_path>")
@@ -57,7 +47,7 @@ if __name__ == "__main__":
     model = DocumentClassifier().to(DEVICE)
 
     state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
-    model.load_state_dict(state_dict)   # ✅ WILL LOAD CLEANLY
+    model.load_state_dict(state_dict)
     model.eval()
 
     image = load_image(image_path).to(DEVICE)

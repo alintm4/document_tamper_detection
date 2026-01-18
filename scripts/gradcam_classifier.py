@@ -20,7 +20,6 @@ model = TamperClassifier().to(DEVICE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
-# Hook storage
 features = []
 gradients = []
 
@@ -30,7 +29,6 @@ def forward_hook(module, input, output):
 def backward_hook(module, grad_in, grad_out):
     gradients.append(grad_out[0])
 
-# Last conv layer in MobileNetV3
 target_layer = model.backbone.features[-1]
 target_layer.register_forward_hook(forward_hook)
 target_layer.register_backward_hook(backward_hook)

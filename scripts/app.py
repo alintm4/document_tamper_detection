@@ -47,7 +47,7 @@ def severity(area):
 
 
 st.set_page_config(page_title="Document Tampering Detection", layout="wide")
-st.title("📄 AI-based Document Tampering Detection")
+st.title("AI-based Document Tampering Detection")
 
 uploaded = st.file_uploader(
     "Upload document image",

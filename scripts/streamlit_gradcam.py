@@ -8,15 +8,12 @@ from torchvision import transforms
 
 from ml_app.models.classifier import TamperClassifier
 
-# ---------------- CONFIG ----------------
 DEVICE = "cpu"
 MODEL_PATH = "outputs/models/classifier_casia.pth"
-# --------------------------------------
 
 st.set_page_config(page_title="Document Tampering Detection", layout="wide")
-st.title("📄 Document Tampering Detection (Grad-CAM Explainability)")
+st.title("Document Tampering Detection (Grad-CAM Explainability)")
 
-# -------- Load model --------
 @st.cache_resource
 def load_model():
     model = TamperClassifier().to(DEVICE)
@@ -26,13 +23,11 @@ def load_model():
 
 model = load_model()
 
-# -------- Image transform --------
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor()
 ])
 
-# -------- Grad-CAM --------
 def generate_gradcam(image_tensor, model):
     gradients = []
     activations = []
@@ -45,19 +40,14 @@ def generate_gradcam(image_tensor, model):
 
     target_layer = model.backbone.features[-1]
 
-    # Register hooks (NEW & SAFE)
     target_layer.register_forward_hook(forward_hook)
     target_layer.register_full_backward_hook(backward_hook)
 
-    # Forward
     output = model(image_tensor)
-    score = output[:, 1]  # tampered class
+    score = output[:, 1]
 
-    # Backward
     model.zero_grad()
     score.backward()
-
-    # FIX: detach tensors before numpy
     grads = gradients[0].detach().cpu().numpy()
     acts = activations[0].detach().cpu().numpy()
 
@@ -74,7 +64,6 @@ def generate_gradcam(image_tensor, model):
     return cam
 
 
-# -------- Upload --------
 uploaded_file = st.file_uploader(
     "Upload a document image",
     type=["jpg", "jpeg", "png"]
@@ -84,7 +73,6 @@ if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     image_tensor = transform(image).unsqueeze(0).to(DEVICE)
 
-    # Prediction
     with torch.no_grad():
         logits = model(image_tensor)
         probs = F.softmax(logits, dim=1)
@@ -92,20 +80,18 @@ if uploaded_file:
 
     label = "TAMPERED" if tampered_prob > 0.5 else "AUTHENTIC"
 
-    st.subheader("📊 Prediction")
+    st.subheader("Prediction")
     st.markdown(f"""
     **Result:** `{label}`  
     **Tampered Probability:** `{tampered_prob:.4f}`
     """)
 
-    # Grad-CAM
     cam = generate_gradcam(image_tensor, model)
 
     img_np = np.array(image.resize((224, 224)))
     heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
     overlay = cv2.addWeighted(img_np, 0.6, heatmap, 0.4, 0)
 
-    # Display
     col1, col2, col3 = st.columns(3)
 
     with col1:

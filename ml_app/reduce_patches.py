@@ -2,7 +2,6 @@ import random
 import shutil
 from pathlib import Path
 
-# CONFIG
 SRC_ROOT = Path("data/casia/patches/train")
 DST_ROOT = Path("data/casia/patches_reduced/train")
 
@@ -26,18 +25,16 @@ def copy_subset(src_dir, dst_dir, limit):
 
     print(f"Copied {limit} files → {dst_dir}")
 
-# REAL
 copy_subset(
     SRC_ROOT / "real",
     DST_ROOT / "real",
     REAL_LIMIT
 )
 
-# TAMPERED
 copy_subset(
     SRC_ROOT / "tampered",
     DST_ROOT / "tampered",
     TAMPERED_LIMIT
 )
 
-print("✅ Patch reduction completed")
+print("Patch reduction completed")

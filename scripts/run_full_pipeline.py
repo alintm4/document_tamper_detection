@@ -9,14 +9,12 @@ from torchvision import transforms
 from ml_app.models.classifier import TamperClassifier
 from ml_app.models.unet import UNet
 
-# ---------------- CONFIG ----------------
 DEVICE = "cpu"
 CLASSIFIER_PATH = "outputs/models/classifier_casia.pth"
 UNET_PATH = "outputs/models/unet_casia.pth"
 THRESHOLD = 0.35
 OUT_DIR = "outputs/results"
 os.makedirs(OUT_DIR, exist_ok=True)
-# ---------------------------------------
 
 
 cls_transform = transforms.Compose([
@@ -49,7 +47,6 @@ def severity_level(area):
         return "HIGH"
 
 
-# -------- LOAD MODELS --------
 classifier = TamperClassifier().to(DEVICE)
 classifier.load_state_dict(torch.load(CLASSIFIER_PATH, map_location=DEVICE))
 classifier.eval()

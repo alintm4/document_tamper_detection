@@ -12,12 +12,10 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-# ✅ correct constructor
 model = UNet(n_classes=1)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
-# test image (tampered)
 img_path = "data/casia/images/tampered/Tp_D_CNN_M_N_nat00041_nat10123_11439.jpg"
 img = Image.open(img_path).convert("RGB")
 

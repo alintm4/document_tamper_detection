@@ -8,19 +8,16 @@ from torchvision import transforms
 from ml_app.models.classifier import TamperClassifier
 from ml_app.models.segmenter import TamperSegmenter
 
-# ================= CONFIG =================
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 CLASSIFIER_PATH = "outputs/models/classifier_casia_b4.pth"
 SEGMENTER_PATH  = "outputs/models/deeplabv3_final.pth"
 
 TAMPER_THRESHOLD = 0.35
-# ==========================================
 
 st.set_page_config(layout="wide")
-st.title("📄 Document Tampering Detection System")
+st.title("Document Tampering Detection System")
 
-# ---------------- LOAD MODELS ----------------
 @st.cache_resource
 def load_models():
     clf = TamperClassifier().to(DEVICE)
@@ -35,7 +32,6 @@ def load_models():
 
 classifier, segmenter = load_models()
 
-# ---------------- TRANSFORMS ----------------
 clf_transform = transforms.Compose([
     transforms.Resize((512, 512)),
     transforms.ToTensor()
@@ -46,7 +42,6 @@ seg_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-# ---------------- GRAD-CAM ----------------
 def grad_cam(model, image_tensor):
     activations = []
     gradients = []
@@ -67,14 +62,14 @@ def grad_cam(model, image_tensor):
     model.zero_grad()
     score.backward()
 
-    act = activations[0]              # [B, C, H, W]
-    grad = gradients[0]               # [B, C, H, W]
+    act = activations[0]
+    grad = gradients[0]
 
     weights = grad.mean(dim=(2, 3), keepdim=True)
     cam = (weights * act).sum(dim=1)
     cam = torch.relu(cam)
 
-    cam = cam[0].detach().cpu().numpy()   # ✅ convert ONCE
+    cam = cam[0].detach().cpu().numpy()
     cam = cv2.resize(cam, (512, 512))
     cam = (cam - cam.min()) / (cam.max() + 1e-8)
 
@@ -84,7 +79,6 @@ def grad_cam(model, image_tensor):
     return cam
 
 
-# ---------------- UI ----------------
 uploaded = st.file_uploader("Upload Document Image", type=["jpg", "png", "jpeg"])
 
 if uploaded:
@@ -93,7 +87,6 @@ if uploaded:
     col1, col2, col3 = st.columns(3)
     col1.image(image, caption="Original Image", use_container_width=True)
 
-    # -------- CLASSIFICATION --------
     img_clf = clf_transform(image).unsqueeze(0).to(DEVICE)
 
     with torch.no_grad():
@@ -103,7 +96,6 @@ if uploaded:
 
     col2.metric("Tampered Probability", f"{tampered_prob:.3f}")
 
-    # -------- GRAD-CAM --------
     cam = grad_cam(classifier, img_clf)
     cam_img = cv2.applyColorMap((cam * 255).astype(np.uint8), cv2.COLORMAP_JET)
     cam_img = cv2.cvtColor(cam_img, cv2.COLOR_BGR2RGB)
@@ -118,9 +110,8 @@ if uploaded:
 
     col3.image(overlay_cam, caption="Grad-CAM (Classifier)", use_container_width=True)
 
-    # -------- SEGMENTATION --------
     if tampered_prob > TAMPER_THRESHOLD:
-        st.success("⚠️ Document classified as TAMPERED — Running segmentation")
+        st.success("Document classified as TAMPERED \u2014 Running segmentation")
 
         img_seg = seg_transform(image).unsqueeze(0).to(DEVICE)
 
@@ -145,4 +136,4 @@ if uploaded:
         c2.image(overlay, caption="Overlay (Tampered Area)", use_container_width=True)
 
     else:
-        st.success("✅ Document classified as AUTHENTIC")
+        st.success("Document classified as AUTHENTIC")
