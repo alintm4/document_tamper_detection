@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from ml_app.datasets.casia_segmentation import CASIASegmentationDataset
-from ml_app.models.unet import UNet
+from ml_app.models.segmenter import TamperSegmenter
 
 # ================= CONFIG =================
 DEVICE = "cpu"                 # Intel Iris Xe safe
@@ -41,7 +41,7 @@ val_loader = DataLoader(
 )
 
 # ---------------- MODEL ----------------
-model = UNet()
+model = TamperSegmenter()
 model.to(DEVICE)
 
 # IMPORTANT: assume UNet DOES NOT apply sigmoid at the end
