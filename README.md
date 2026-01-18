@@ -26,6 +26,7 @@ Proofly combines cutting-edge AI with practical usability through:
 
 ### Key Achievements  
 ✅ Model with 68%+ accuracy.
+
 ✅ **2-3 second** analysis time per document  
 ✅ **Pixel-level precision** in identifying tampered regions  
 ✅ **Multi-platform deployment** (web, extension, API)  
