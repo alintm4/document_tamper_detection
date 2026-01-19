@@ -57,6 +57,7 @@ export default function HistoryPage() {
       }
 
       const data = await response.json();
+      console.log('Scans data received:', data.scans);
       setScans(data.scans || []);
       setTotalPages(data.pages || 1);
     } catch (err) {

@@ -141,6 +141,11 @@ def get_user_scans(user_id):
     
     scans = []
     for row in c.fetchall():
+        is_manipulated = row['is_manipulated']
+        # Convert SQLite 0/1 to boolean, keep None as is
+        if is_manipulated is not None:
+            is_manipulated = bool(is_manipulated)
+        
         scans.append({
             'scan_id': row['scan_id'],
             'source_site': row['source_site'],
@@ -151,7 +156,7 @@ def get_user_scans(user_id):
                 'id': row['image_id'],
                 'hash': row['image_hash'],
                 'filename': row['filename'],
-                'is_manipulated': row['is_manipulated'],
+                'is_manipulated': is_manipulated,
                 'confidence_score': row['confidence_score'],
                 'analysis_result': row['analysis_result'],
                 'total_scans': row['total_scans']
