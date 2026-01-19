@@ -499,7 +499,7 @@ export default function DashboardPage() {
       {/* Scan Modal */}
       {showScanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900">Scan Image</h2>
@@ -612,8 +612,22 @@ export default function DashboardPage() {
                     </>
                   ) : (
                     <>
+                      {/* Image with heatmap overlay for manipulated images */}
                       {previewUrl && (
-                        <img src={previewUrl} alt="Scanned" className="max-h-32 rounded-lg mx-auto mb-4" />
+                        <div className="relative inline-block mb-4">
+                          <img 
+                            src={previewUrl} 
+                            alt="Scanned" 
+                            className="max-w-full max-h-64 rounded-lg border-4 border-gray-200"
+                          />
+                          {scanResult.is_manipulated && scanResult.heatmap_filename && (
+                            <img 
+                              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${scanResult.heatmap_filename}`}
+                              alt="Heatmap overlay"
+                              className="absolute inset-0 w-full h-full rounded-lg object-cover opacity-60 mix-blend-multiply"
+                            />
+                          )}
+                        </div>
                       )}
                       <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${
                         scanResult.is_manipulated ? 'bg-red-100' : 'bg-green-100'
@@ -633,17 +647,9 @@ export default function DashboardPage() {
                       </p>
                       <p className="text-gray-500 text-sm mb-2">{scanResult.message}</p>
                       
-                      {/* Show heatmap for manipulated images */}
+                      {/* Caption for manipulated images */}
                       {scanResult.is_manipulated && scanResult.heatmap_filename && (
-                        <div className="mt-4 mb-4">
-                          <p className="text-gray-500 text-xs mb-2">Detected Tampering:</p>
-                          <img 
-                            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${scanResult.heatmap_filename}`}
-                            alt="Heatmap showing tampered regions"
-                            className="max-h-48 rounded-lg mx-auto border border-red-200"
-                          />
-                          <p className="text-gray-400 text-xs mt-2">Red/yellow areas indicate manipulated regions</p>
-                        </div>
+                        <p className="text-gray-400 text-xs mt-2">Red/yellow areas indicate manipulated regions</p>
                       )}
                     </>
                   )}
