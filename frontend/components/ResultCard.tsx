@@ -2,13 +2,16 @@ interface AnalysisResult {
   result?: 'authentic' | 'manipulated';
   confidence?: number;
   error?: string;
+  heatmap_url?: string;
+  original_url?: string;
 }
 
 interface ResultCardProps {
   result: AnalysisResult | null;
+  showHeatmap?: boolean; // Set to false for history/past scans
 }
 
-export default function ResultCard({ result }: ResultCardProps) {
+export default function ResultCard({ result, showHeatmap = true }: ResultCardProps) {
   if (!result) return null;
 
   if (result.error) {
@@ -64,25 +67,38 @@ export default function ResultCard({ result }: ResultCardProps) {
               ? 'This image appears to be genuine.'
               : 'This image may have been altered.'}
           </p>
-
-          {result.confidence && (
-            <div className="mt-3">
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-gray-500">Confidence</span>
-                <span className={isAuthentic ? 'text-green-600' : 'text-red-600'}>
-                  {Math.round(result.confidence * 100)}%
-                </span>
-              </div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${isAuthentic ? 'bg-green-500' : 'bg-red-500'}`}
-                  style={{ width: `${result.confidence * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Heatmap Overlay - Only shown for manipulated images and when showHeatmap is true */}
+      {!isAuthentic && showHeatmap && result.heatmap_url && (
+        <div className="mt-4 pt-4 border-t border-red-200">
+          <h4 className="text-sm font-medium text-red-800 mb-3">Tampering Analysis</h4>
+          <div className="grid grid-cols-2 gap-3">
+            {result.original_url && (
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Original</p>
+                <img 
+                  src={result.original_url} 
+                  alt="Original" 
+                  className="w-full h-auto rounded-lg border border-gray-200"
+                />
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Detected Regions</p>
+              <img 
+                src={result.heatmap_url} 
+                alt="Heatmap overlay showing tampered regions" 
+                className="w-full h-auto rounded-lg border border-red-200"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Red/yellow areas indicate potentially manipulated regions
+          </p>
+        </div>
+      )}
     </div>
   );
 }

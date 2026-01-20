@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proofly</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 320px;
+      background: #ffffff;
+    }
+
+    /* Header */
+    .header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo {
+      width: 32px;
+      height: 32px;
+    }
+
+    .header-text h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .header-text p {
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.offline {
+      background: #ef4444;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    /* Scans Remaining Card - Prominent Display */
+    .scans-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-radius: 16px;
+      padding: 20px;
+      color: white;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scans-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .scans-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .scans-label {
+      font-size: 12px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .scans-badge {
+      padding: 4px 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+    .scans-badge.pro {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    .scans-number {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .scans-current {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .scans-total {
+      font-size: 18px;
+      color: #64748b;
+    }
+
+    .scans-progress {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .scans-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .scans-progress-fill.low {
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+    }
+
+    .scans-progress-fill.empty {
+      background: #ef4444;
+    }
+
+    /* Limit Reached Alert */
+    .limit-alert {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .limit-alert.show {
+      display: block;
+    }
+
+    .limit-alert-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .limit-alert-icon {
+      width: 32px;
+      height: 32px;
+      background: #f59e0b;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .limit-alert-icon svg {
+      width: 18px;
+      height: 18px;
+      color: white;
+    }
+
+    .limit-alert-text h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 4px;
+    }
+
+    .limit-alert-text p {
+      font-size: 12px;
+      color: #a16207;
+    }
+
+    /* User Badge */
+    .user-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-avatar svg {
+      width: 18px;
+      height: 18px;
+      color: white;
+    }
+
+    .user-avatar.guest {
+      background: #e2e8f0;
+    }
+
+    .user-avatar.guest svg {
+      color: #64748b;
+    }
+
+    .user-details h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .user-details p {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .logout-btn {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .logout-btn:hover {
+      background: #fee2e2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+
+    /* Buttons */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: #0f172a;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1e293b;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Auth Forms */
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input {
+      padding: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      background: #f8fafc;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .auth-toggle {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .auth-toggle a {
+      color: #3b82f6;
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .auth-toggle a:hover {
+      text-decoration: underline;
+    }
+
+    /* Messages */
+    .message {
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .message.error {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .message.success {
+      background: #f0fdf4;
+      color: #15803d;
+    }
+
+    .message svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* How to Use */
+    .how-to-use {
+      margin-top: 16px;
+      padding: 14px;
+      background: #f0f9ff;
+      border-radius: 10px;
+      border: 1px solid #e0f2fe;
+    }
+
+    .how-to-use-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #0369a1;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .how-to-use-title svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .how-to-use-text {
+      font-size: 12px;
+      color: #0c4a6e;
+      line-height: 1.5;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    .divider-text {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 12px 20px;
+      background: #f8fafc;
+      border-top: 1px solid #f0f0f0;
+      text-align: center;
+    }
+
+    .footer a {
+      font-size: 11px;
+      color: #64748b;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: #3b82f6;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <svg class="header-logo" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#3b82f6"/>
+            <stop offset="100%" style="stop-color:#1d4ed8"/>
+          </linearGradient>
+        </defs>
+        <path d="M50 5 L90 20 L90 45 C90 70 70 88 50 98 C30 88 10 70 10 45 L10 20 Z" fill="url(#shieldGrad)"/>
+        <ellipse cx="50" cy="42" rx="18" ry="11" fill="none" stroke="#fff" stroke-width="3"/>
+        <circle cx="50" cy="42" r="6" fill="#fff"/>
+        <circle cx="50" cy="42" r="3" fill="#1d4ed8"/>
+        <path d="M38 68 L46 76 L64 58" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="header-text">
+        <h1>Proofly</h1>
+        <p>Image Verification</p>
+      </div>
+    </div>
+    <div class="status-dot" id="statusDot" title="Connected"></div>
+  </div>
+
+  <div class="content">
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      Loading...
+    </div>
+
+    <!-- Message Container -->
+    <div id="message" class="message" style="display: none;"></div>
+
+    <!-- Limit Reached Alert -->
+    <div id="limitAlert" class="limit-alert">
+      <div class="limit-alert-content">
+        <div class="limit-alert-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="limit-alert-text">
+          <h3>Limit Reached</h3>
+          <p>Create an account to get more scans!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Anonymous View -->
+    <div id="anonymousView" style="display: none;">
+      <div class="scans-card">
+        <div class="scans-header">
+          <span class="scans-label">Scans Remaining</span>
+          <span class="scans-badge">Guest</span>
+        </div>
+        <div class="scans-number">
+          <span class="scans-current" id="anonRemaining">3</span>
+          <span class="scans-total">/ 3</span>
+        </div>
+        <div class="scans-progress">
+          <div class="scans-progress-fill" id="anonProgress" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnShowRegister">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M19 8v6M22 11h-6"/>
+        </svg>
+        Create Free Account
+      </button>
+      <button class="btn btn-secondary" id="btnShowLogin">Sign In</button>
+
+      <div class="how-to-use">
+        <div class="how-to-use-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4m0-4h.01"/>
+          </svg>
+          How to use
+        </div>
+        <div class="how-to-use-text">
+          Right-click on any image and select <strong>"Check with Proofly"</strong>
+        </div>
+        <div class="how-to-use-text" style="margin-top: 8px; font-size: 11px; color: #6b7280;">
+          Already logged in on website? <a href="http://localhost:3000/dashboard" target="_blank" style="color: #3b82f6; text-decoration: none;">Visit dashboard</a> to sync
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" style="display: none;">
+      <form class="auth-form" id="loginFormElement">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" placeholder="Enter your username" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          Sign In
+        </button>
+      </form>
+      <div class="auth-toggle">
+        Don't have an account? <a id="linkToRegister" href="#">Create one</a>
+      </div>
+      <div class="divider">
+        <span class="divider-line"></span>
+        <span class="divider-text">or</span>
+        <span class="divider-line"></span>
+      </div>
+      <button class="btn btn-secondary" id="btnShowAnonymous" style="margin-top: 0;">
+        Continue as Guest
+      </button>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" style="display: none;">
+      <form class="auth-form" id="registerFormElement">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="registerUsername" placeholder="Choose a username" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="registerEmail" placeholder="your@email.com" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="registerPassword" placeholder="Min 6 characters" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary" id="registerBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M19 8v6M22 11h-6"/>
+          </svg>
+          Create Account
+        </button>
+      </form>
+      <div class="auth-toggle">
+        Already have an account? <a id="linkToLogin" href="#">Sign in</a>
+      </div>
+    </div>
+
+    <!-- User Dashboard -->
+    <div id="userDashboard" style="display: none;">
+      <div class="scans-card">
+        <div class="scans-header">
+          <span class="scans-label">Scans Remaining</span>
+          <span class="scans-badge" id="tierBadge">Free</span>
+        </div>
+        <div class="scans-number">
+          <span class="scans-current" id="remainingCount">0</span>
+          <span class="scans-total">/ <span id="totalLimit">8</span></span>
+        </div>
+        <div class="scans-progress">
+          <div class="scans-progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="user-section">
+        <div class="user-info">
+          <div class="user-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="user-details">
+            <h3 id="userName">User</h3>
+            <p id="userTier">Free Account</p>
+          </div>
+        </div>
+        <button class="logout-btn" id="btnLogout">Sign Out</button>
+      </div>
+
+      <div class="how-to-use">
+        <div class="how-to-use-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4m0-4h.01"/>
+          </svg>
+          How to use
+        </div>
+        <div class="how-to-use-text">
+          Right-click on any image and select <strong>"Check with Proofly"</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="http://localhost:3000" target="_blank">Open Proofly Dashboard →</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
